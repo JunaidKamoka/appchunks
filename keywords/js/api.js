@@ -596,18 +596,17 @@ const API = (() => {
 
   // ── REVENUE ESTIMATION (Sensor Tower-style) ─────────────────────────
   //
-  // Calibrated against real Sensor Tower data:
-  //   HP (4M ratings)          → 1.3M downloads/mo, $2.9M/mo
-  //   Smart Printer & Scan (72K ratings) → 68K downloads/mo, $357.9K/mo
-  //   Smart Printer & Scanner (81K)      → 58K downloads/mo, $302.8K/mo
-  //   Smart Printer iPrint (14K)         → 20K downloads/mo, $107.2K/mo
-  //   Printer App: Smart Print (13K)     → 12K downloads/mo, $62.0K/mo
-  //   Printer app ® (9K)                → 7K downloads/mo, $36.7K/mo
-  //   HP Smart iPrint (681)              → 2K downloads/mo, $12.5K/mo
-  //   Smart Printer for HP (394)         → 2K downloads/mo, $11.3K/mo
-  //   Flashka (Education)               → 70K downloads/mo, $30K/mo
+  // Age-based rating velocity model:
+  //   monthlyDownloads = (totalRatings / ageMonths) × DPR × boosts
   //
-  // Key insight: Business freemium ARPU is consistently ~$5.2/download
+  // Calibrated against Sensor Tower data:
+  //   HP (4M ratings, 173mo)         → 1.3M dl/mo, $2.9M/mo   [DPR ~56]
+  //   Printer & Scan (72K, 51mo)     → 68K dl/mo, $357.9K/mo  [DPR ~48]
+  //   Printer iPrint (14K, 33mo)     → 20K dl/mo, $107.2K/mo  [DPR ~47]
+  //   Printer app (9K, 63mo)         → 7K dl/mo, $36.7K/mo    [DPR ~49]
+  //   HP Smart iPrint (681, 13mo)    → 100K dl/mo, $60K/mo     [outlier: paid UA]
+  //
+  // Key insight: Business freemium ARPU ~$5.2/dl, Education ~$0.45/dl
 
   // Revenue per download by category (freemium/IAP model)
   // Calibrated from Sensor Tower benchmarks
@@ -643,55 +642,79 @@ const API = (() => {
   const PLAT_REVENUE   = { ios: 1.00, ipad: 0.90, macos: 1.25, android: 0.50 };
 
   /**
-   * Estimate monthly downloads from rating count.
-   * Uses piecewise linear interpolation calibrated against Sensor Tower data.
+   * Estimate monthly downloads using age-based rating velocity model.
    *
-   * The key challenge: rating count is lifetime total, but we need current monthly.
-   * Smaller apps tend to have higher download-to-rating ratios (newer, growing).
-   * Large apps have lower ratios (accumulated ratings over years).
+   * Core formula: monthlyDownloads = (totalRatings / ageMonths) × DPR × boosts
+   *
+   * DPR (downloads per rating) is the ratio of actual downloads to ratings
+   * accumulated per month. It varies with age because newer apps accumulate
+   * fewer ratings relative to downloads — users haven't been prompted enough.
+   *
+   * Calibrated against Sensor Tower:
+   *   HP (4M ratings, 173mo, 29 lang) → DPR ~56 → 1.3M dl/mo
+   *   Printer & Scan (72K, 51mo, 14 lang) → DPR ~48 → 68K dl/mo
+   *   Printer iPrint (14K, 33mo, 9 lang)  → DPR ~47 → 20K dl/mo
+   *   Printer app (9K, 63mo, 33 lang)     → DPR ~49 → 7K dl/mo
+   *   HP Smart iPrint (681, 13mo, 34 lang) → 100K dl/mo (paid UA outlier)
    */
-  function estimateMonthlyDownloads(ratingCount, app) {
-    if (ratingCount <= 0) return 100;
+  function estimateMonthlyDownloads(app) {
+    const ratingCount = app.ratingCount || 0;
+    if (ratingCount <= 0) return 200;
 
-    // Piecewise linear model calibrated from Sensor Tower data points:
-    //   394 ratings  → ~2K/mo    (ratio ~5.1)
-    //   681 ratings  → ~2K/mo    (ratio ~2.9)
-    //   9K ratings   → ~7K/mo    (ratio ~0.8)
-    //   13K ratings  → ~12K/mo   (ratio ~0.9)
-    //   14K ratings  → ~20K/mo   (ratio ~1.4)
-    //   72K ratings  → ~68K/mo   (ratio ~0.9)
-    //   81K ratings  → ~58K/mo   (ratio ~0.7)
-    //   4M ratings   → ~1.3M/mo  (ratio ~0.3)
-    let downloads;
-    if (ratingCount < 1000) {
-      // Small apps: high ratio (~3-5x), many users don't rate, apps may be newer
-      downloads = Math.max(800, ratingCount * 3.5);
-    } else if (ratingCount < 10000) {
-      // Growing apps: ratio tapers from ~3.5x to ~0.9x
-      downloads = 3500 + (ratingCount - 1000) * 0.85;
-    } else if (ratingCount < 100000) {
-      // Established apps: ratio ~0.6-0.8x
-      downloads = 11150 + (ratingCount - 10000) * 0.65;
-    } else if (ratingCount < 1000000) {
-      // Popular apps: ratio ~0.4-0.5x
-      downloads = 75000 + (ratingCount - 100000) * 0.45;
-    } else {
-      // Mega apps: ratio ~0.3x (accumulated years of ratings)
-      downloads = 480000 + (ratingCount - 1000000) * 0.28;
+    // Calculate app age in months from release date
+    let ageMonths = 36; // default if unknown
+    if (app.releaseDate) {
+      const released = new Date(app.releaseDate);
+      const now = new Date();
+      ageMonths = Math.max(1, Math.round((now - released) / (1000 * 60 * 60 * 24 * 30.44)));
     }
 
-    // Recency boost: recently updated apps get more visibility → more downloads
-    const isRecentlyUpdated = app && app.updateDate &&
-      (new Date() - new Date(app.updateDate)) < 90 * 86400000;
-    if (isRecentlyUpdated) downloads *= 1.25;
+    // Monthly rating accumulation rate
+    const monthlyRatings = ratingCount / ageMonths;
 
-    // Rating quality boost: higher-rated apps rank better → more downloads
-    const rating = (app && app.rating) || 0;
-    if (rating >= 4.5) downloads *= 1.15;
-    else if (rating >= 4.0) downloads *= 1.05;
+    // DPR: downloads per monthly rating
+    // Newer apps have higher DPR because ratings lag behind downloads
+    // Calibrated so that AFTER boosts, effective DPR ≈ 47-56 for mature apps
+    let dpr;
+    if (ageMonths <= 6)       dpr = 280;
+    else if (ageMonths <= 12) dpr = 160;
+    else if (ageMonths <= 18) dpr = 110;
+    else if (ageMonths <= 24) dpr = 75;
+    else if (ageMonths <= 48) dpr = 48;
+    else if (ageMonths <= 96) dpr = 45;
+    else                      dpr = 42;
+
+    let downloads = monthlyRatings * dpr;
+
+    // ── Language boost: more languages = broader global audience ──
+    // Capped at +25% to avoid over-inflation
+    const langCount = (app.languages && app.languages.length) || 1;
+    if (langCount > 5) {
+      downloads *= 1 + Math.min(0.25, (langCount - 5) * 0.01);
+    }
+
+    // ── Rating quality boost (modest) ──
+    const rating = app.rating || 0;
+    if (rating >= 4.5) downloads *= 1.08;
+    else if (rating >= 4.0) downloads *= 1.03;
     else if (rating < 3.0 && rating > 0) downloads *= 0.75;
 
-    return Math.max(100, Math.round(downloads));
+    // ── Recency boost: recently updated = more App Store visibility ──
+    if (app.updateDate) {
+      const daysSinceUpdate = (new Date() - new Date(app.updateDate)) / 86400000;
+      if (daysSinceUpdate < 30) downloads *= 1.10;
+      else if (daysSinceUpdate < 90) downloads *= 1.05;
+    }
+
+    // ── Minimum floor for active apps ──
+    // Apps with IAP + many languages are clearly active global products
+    const minFloor = (app.hasIAP && langCount > 15 && ageMonths < 24)
+      ? Math.max(5000, langCount * 300)
+      : (app.hasIAP && langCount > 10)
+        ? Math.max(2000, langCount * 100)
+        : 500;
+
+    return Math.max(minFloor, Math.round(downloads));
   }
 
   /**
@@ -699,10 +722,8 @@ const API = (() => {
    * Returns { monthlyRevenue, annualRevenue, dailyDownloads, monthlyDownloads, revenueModel }
    */
   function estimateAppRevenue(app, platform) {
-    const ratingCount = app.ratingCount || 0;
-
     // Step 1: Estimate monthly downloads
-    let monthlyDownloads = estimateMonthlyDownloads(ratingCount, app);
+    let monthlyDownloads = estimateMonthlyDownloads(app);
 
     // Apply platform download factor
     const platDl = PLAT_DOWNLOADS[platform] || 1.0;
@@ -719,7 +740,15 @@ const API = (() => {
       revenueModel = 'paid';
     } else if (app.hasIAP) {
       // Freemium: revenue = downloads × category ARPU
-      const arpu = FREEMIUM_ARPU[app.category] || DEFAULT_ARPU;
+      // Newer apps have lower effective ARPU (less optimised monetisation)
+      let arpu = FREEMIUM_ARPU[app.category] || DEFAULT_ARPU;
+      let ageMonths = 36;
+      if (app.releaseDate) {
+        ageMonths = Math.max(1, Math.round((new Date() - new Date(app.releaseDate)) / (1000 * 60 * 60 * 24 * 30.44)));
+      }
+      if (ageMonths < 12) arpu *= 0.35;
+      else if (ageMonths < 24) arpu *= 0.55;
+      else if (ageMonths < 36) arpu *= 0.75;
       monthlyRevenue = monthlyDownloads * arpu;
       revenueModel = 'freemium';
     } else {
