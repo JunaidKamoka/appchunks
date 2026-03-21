@@ -60,6 +60,7 @@
     asoSubtitles:   $('asoSubtitles'),
     asoKeywordField:$('asoKeywordField'),
     asoDescriptions:$('asoDescriptions'),
+    sidebarBackdrop:$('sidebarBackdrop'),
   };
 
   // ── INIT ─────────────────────────────────────────────────────────
@@ -112,10 +113,7 @@
         switchView(view);
         $$('.nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
-        if (window.innerWidth <= 900) {
-          els.sidebar.classList.remove('open');
-          els.sidebarBackdrop.classList.remove('visible');
-        }
+        if (window.innerWidth <= 900) closeSidebar();
       });
     });
 
@@ -123,11 +121,17 @@
     els.sidebarToggle.addEventListener('click', () => {
       const isOpen = els.sidebar.classList.toggle('open');
       els.sidebarBackdrop.classList.toggle('visible', isOpen);
+      document.body.classList.toggle('sidebar-open', isOpen);
     });
-    els.sidebarBackdrop.addEventListener('click', () => {
-      els.sidebar.classList.remove('open');
-      els.sidebarBackdrop.classList.remove('visible');
-    });
+    els.sidebarBackdrop.addEventListener('click', closeSidebar);
+
+    // Close sidebar on swipe-left
+    let touchStartX = 0;
+    els.sidebar.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    els.sidebar.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (dx < -60) closeSidebar();
+    }, { passive: true });
 
     // Bulk toggle
     els.bulkToggle.addEventListener('click', () => {
@@ -699,12 +703,14 @@
 
     els.appModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
     try { feather.replace(); } catch(e) {}
   }
 
   function closeModal() {
     els.appModal.classList.add('hidden');
     document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
   }
 
   // ── ASO METADATA GENERATOR ──────────────────────────────────────
@@ -1034,6 +1040,13 @@
     els.toastContainer.appendChild(div);
     try { feather.replace(); } catch(e) {}
     setTimeout(() => div.remove(), 3500);
+  }
+
+  // ── SIDEBAR CLOSE ─────────────────────────────────────────────────
+  function closeSidebar() {
+    els.sidebar.classList.remove('open');
+    els.sidebarBackdrop.classList.remove('visible');
+    document.body.classList.remove('sidebar-open');
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────
