@@ -54,7 +54,12 @@
     historyList:    $('historyList'),
     savedList:      $('savedList'),
     trendingPlatformLabel: $('trendingPlatformLabel'),
-    sidebarBackdrop:       $('sidebarBackdrop'),
+    generateAsoBtn: $('generateAsoBtn'),
+    asoGeneratorContent: $('asoGeneratorContent'),
+    asoTitles:      $('asoTitles'),
+    asoSubtitles:   $('asoSubtitles'),
+    asoKeywordField:$('asoKeywordField'),
+    asoDescriptions:$('asoDescriptions'),
   };
 
   // ── INIT ─────────────────────────────────────────────────────────
@@ -208,6 +213,9 @@
     els.competitorInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') doCompetitorSearch();
     });
+
+    // ASO Generator
+    els.generateAsoBtn.addEventListener('click', generateAndRenderASO);
   }
 
   // ── VIEW SWITCHING ────────────────────────────────────────────────
@@ -250,6 +258,9 @@
     els.resultsContainer.classList.add('hidden');
     els.loadingState.classList.remove('hidden');
     els.suggestions.innerHTML = '';
+
+    // Reset ASO generator
+    els.asoGeneratorContent.classList.add('hidden');
 
     try {
       const data = await API.searchKeyword(keyword, state.platform, state.country);
@@ -662,6 +673,106 @@
     document.body.style.overflow = '';
   }
 
+  // ── ASO METADATA GENERATOR ──────────────────────────────────────
+  function generateAndRenderASO() {
+    if (!state.results) {
+      showToast('Run a keyword search first', 'error');
+      return;
+    }
+
+    const { keyword, related, apps } = state.results;
+    const aso = API.generateASOMetadata(keyword, related, apps);
+
+    // Render Titles
+    els.asoTitles.innerHTML = aso.titles.map(t => `
+      <div class="aso-suggestion-item">
+        <div class="aso-suggestion-text">${escHtml(t)}</div>
+        <div class="aso-suggestion-meta">
+          <span class="aso-char-count ${t.length > 30 ? 'over-limit' : ''}">${t.length}/30 chars</span>
+          <button class="aso-copy-btn" data-copy="${escHtml(t)}" title="Copy">
+            <i data-feather="copy"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Render Subtitles
+    els.asoSubtitles.innerHTML = aso.subtitles.map(s => `
+      <div class="aso-suggestion-item">
+        <div class="aso-suggestion-text">${escHtml(s)}</div>
+        <div class="aso-suggestion-meta">
+          <span class="aso-char-count ${s.length > 30 ? 'over-limit' : ''}">${s.length}/30 chars</span>
+          <button class="aso-copy-btn" data-copy="${escHtml(s)}" title="Copy">
+            <i data-feather="copy"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Render Keyword Field
+    els.asoKeywordField.innerHTML = `
+      <div class="aso-suggestion-item">
+        <div class="aso-suggestion-text font-mono" style="font-size:0.82rem">${escHtml(aso.keywordList)}</div>
+        <div class="aso-suggestion-meta">
+          <span class="aso-char-count ${aso.keywordList.length > 100 ? 'over-limit' : ''}">${aso.keywordList.length}/100 chars</span>
+          <button class="aso-copy-btn" data-copy="${escHtml(aso.keywordList)}" title="Copy">
+            <i data-feather="copy"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Render Descriptions
+    els.asoDescriptions.innerHTML = aso.descriptions.map((d, i) => `
+      <div class="aso-description-item">
+        <div class="aso-desc-label">Option ${i + 1}</div>
+        <div class="aso-desc-text">${escHtml(d).replace(/\n/g, '<br>')}</div>
+        <div class="aso-suggestion-meta">
+          <span class="aso-char-count">${d.length} chars</span>
+          <button class="aso-copy-btn" data-copy-desc="${i}" title="Copy">
+            <i data-feather="copy"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Store descriptions for copy
+    els.asoDescriptions._descriptions = aso.descriptions;
+
+    // Show the content
+    els.asoGeneratorContent.classList.remove('hidden');
+    feather.replace();
+
+    // Bind copy buttons
+    $$('.aso-copy-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        let text = btn.dataset.copy;
+        if (btn.dataset.copyDesc !== undefined) {
+          text = els.asoDescriptions._descriptions[+btn.dataset.copyDesc];
+        }
+        if (text) {
+          navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!', 'success');
+          }).catch(() => {
+            // Fallback
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('Copied to clipboard!', 'success');
+          });
+        }
+      });
+    });
+
+    // Scroll to the section
+    $('asoGeneratorCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('ASO metadata generated!', 'success');
+  }
+
   // ── TRENDING VIEW ─────────────────────────────────────────────────
   function renderTrendingView() {
     const trending = API.getTrending(state.platform, state.country);
@@ -943,7 +1054,25 @@
     return `${Math.floor(h/24)}d ago`;
   }
 
+  // ── CURSOR GLOW TRACKING ────────────────────────────────────────
+  function initGlowTracking() {
+    document.addEventListener('mousemove', e => {
+      const targets = document.querySelectorAll('.metric-card, .app-row');
+      targets.forEach(card => {
+        const r = card.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right &&
+            e.clientY >= r.top && e.clientY <= r.bottom) {
+          card.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
+          card.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
+        }
+      });
+    });
+  }
+
   // ── BOOT ─────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initGlowTracking();
+  });
 
 })();

@@ -637,6 +637,173 @@ body::before{
 }
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
+/* ── SMOOTH ENTRANCE SYSTEM ── */
+.stagger-1{transition-delay:0.05s!important}
+.stagger-2{transition-delay:0.1s!important}
+.stagger-3{transition-delay:0.15s!important}
+.stagger-4{transition-delay:0.2s!important}
+.stagger-5{transition-delay:0.25s!important}
+.stagger-6{transition-delay:0.3s!important}
+
+/* reveal variants */
+.reveal-left{opacity:0;transform:translateX(-50px);transition:opacity 0.8s var(--ease),transform 0.8s var(--ease)}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+.reveal-right{opacity:0;transform:translateX(50px);transition:opacity 0.8s var(--ease),transform 0.8s var(--ease)}
+.reveal-right.visible{opacity:1;transform:translateX(0)}
+.reveal-scale{opacity:0;transform:scale(0.9);transition:opacity 0.7s var(--ease),transform 0.7s var(--ease)}
+.reveal-scale.visible{opacity:1;transform:scale(1)}
+.reveal-rotate{opacity:0;transform:translateY(30px) rotate(2deg);transition:opacity 0.7s var(--ease),transform 0.7s var(--ease)}
+.reveal-rotate.visible{opacity:1;transform:translateY(0) rotate(0)}
+
+/* ── TEXT SHIMMER ── */
+@keyframes textShimmer{
+  0%{background-position:-200% center}
+  100%{background-position:200% center}
+}
+.hero-title .grad-text{
+  background:linear-gradient(90deg,#ffffff 0%,#aaaaaa 25%,#ffffff 50%,#aaaaaa 75%,#ffffff 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:textShimmer 6s linear infinite;
+}
+
+/* ── MAGNETIC HOVER ON BUTTONS ── */
+.btn-primary,.btn-outline,.btn-nav{
+  transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+.btn-primary:active{transform:translateY(0) scale(0.97)}
+.btn-outline:active{transform:translateY(0) scale(0.97)}
+
+/* ── CARD GLOW FOLLOW CURSOR ── */
+.service-card{
+  --glow-x:50%;--glow-y:50%;
+  transition:all 0.4s var(--ease),transform 0.2s;
+}
+.service-card::after{
+  content:'';position:absolute;inset:0;border-radius:var(--r2);
+  background:radial-gradient(400px circle at var(--glow-x) var(--glow-y),rgba(255,255,255,0.06),transparent 60%);
+  opacity:0;transition:opacity 0.4s;pointer-events:none;
+}
+.service-card:hover::after{opacity:1}
+
+/* ── ICON BOUNCE ── */
+@keyframes iconBounce{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.15)}
+}
+.service-card:hover .service-icon{animation:iconBounce 0.5s var(--ease)}
+
+/* ── STAT COUNTER GLOW ── */
+@keyframes counterGlow{
+  0%{text-shadow:none}
+  50%{text-shadow:0 0 20px rgba(255,255,255,0.3)}
+  100%{text-shadow:none}
+}
+.stat-item:hover .stat-num{animation:counterGlow 1.5s ease-in-out}
+
+/* ── PROCESS STEP CONNECTOR ANIMATION ── */
+@keyframes lineGrow{
+  from{transform:scaleX(0)}to{transform:scaleX(1)}
+}
+.process-steps::before{
+  transform-origin:left;
+  animation:lineGrow 1.2s var(--ease) 0.5s both;
+}
+
+/* ── FLOAT ANIMATION FOR MOCKUP ── */
+@keyframes gentleFloat{
+  0%,100%{transform:translateY(0px)}
+  50%{transform:translateY(-12px)}
+}
+.tool-mockup{animation:gentleFloat 5s ease-in-out infinite}
+
+/* ── MOCKUP ROWS STAGGER IN ── */
+@keyframes slideInRight{
+  from{opacity:0;transform:translateX(20px)}
+  to{opacity:1;transform:translateX(0)}
+}
+.tool-card.visible .mockup-kw-row{animation:slideInRight 0.5s var(--ease) both}
+.tool-card.visible .mockup-kw-row:nth-child(2){animation-delay:0.1s}
+.tool-card.visible .mockup-kw-row:nth-child(3){animation-delay:0.2s}
+.tool-card.visible .mockup-kw-row:nth-child(4){animation-delay:0.3s}
+.tool-card.visible .mockup-kw-row:nth-child(5){animation-delay:0.4s}
+
+/* ── CONTACT ITEM HOVER RIPPLE ── */
+.contact-item{position:relative;overflow:hidden}
+.contact-item::before{
+  content:'';position:absolute;top:50%;left:-10%;
+  width:0;height:0;border-radius:50%;
+  background:rgba(255,255,255,0.04);
+  transition:width 0.6s var(--ease),height 0.6s var(--ease),top 0.6s,left 0.6s;
+  transform:translate(-50%,-50%);pointer-events:none;
+}
+.contact-item:hover::before{width:300%;height:300%;top:50%;left:50%}
+
+/* ── FORM INPUT FOCUS GLOW ── */
+.form-input,.form-textarea{
+  transition:border-color 0.3s,box-shadow 0.3s,transform 0.2s;
+}
+.form-input:focus,.form-textarea:focus{
+  transform:translateY(-1px);
+  box-shadow:0 0 0 3px rgba(255,255,255,0.08),0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* ── FOOTER LINK UNDERLINE ANIMATION ── */
+.footer-links a{position:relative;display:inline-block}
+.footer-links a::after{
+  content:'';position:absolute;bottom:-2px;left:0;
+  width:0;height:1px;background:var(--accent);
+  transition:width 0.3s var(--ease);
+}
+.footer-links a:hover::after{width:100%}
+
+/* ── FOOTER SOCIAL ROTATE ── */
+.footer-social{transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275)}
+.footer-social:hover{transform:translateY(-3px) rotate(-5deg)}
+
+/* ── ABOUT CARD FLOAT ── */
+.about-card{transition:all 0.4s var(--ease)}
+.about-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 16px 40px rgba(0,0,0,0.3);
+}
+
+/* ── PROCESS NUM PULSE ── */
+@keyframes numPulse{
+  0%{box-shadow:0 0 0 0 rgba(255,255,255,0.15)}
+  70%{box-shadow:0 0 0 15px rgba(255,255,255,0)}
+  100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}
+}
+.process-step:hover .process-num{animation:numPulse 1s ease-out}
+
+/* ── HERO BADGE GLOW PULSE ── */
+@keyframes badgeGlow{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}
+  50%{box-shadow:0 0 20px 2px rgba(255,255,255,0.08)}
+}
+.hero-badge{animation:fadeUp 0.8s var(--ease) both,badgeGlow 3s ease-in-out 1.5s infinite}
+
+/* ── SCROLL PROGRESS BAR ── */
+.scroll-progress{
+  position:fixed;top:0;left:0;height:2px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.8),rgba(255,255,255,0.4));
+  z-index:1001;width:0;transition:width 0.1s linear;
+  box-shadow:0 0 8px rgba(255,255,255,0.3);
+}
+
+/* ── PAGE LOAD ANIMATION ── */
+@keyframes pageLoad{
+  from{opacity:0}to{opacity:1}
+}
+body{animation:pageLoad 0.6s ease both}
+
+/* ── NAVBAR GLASS MORPH ── */
+#nav{transition:background 0.4s var(--ease),border-color 0.4s var(--ease),box-shadow 0.4s var(--ease),backdrop-filter 0.4s}
+
+/* ── SMOOTH PARALLAX HINTS ── */
+.blob{will-change:transform}
+.hero-gradient{will-change:transform,opacity}
+
 /* ═══════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════ */
@@ -680,6 +847,9 @@ body::before{
 </style>
 </head>
 <body>
+
+<!-- SCROLL PROGRESS BAR -->
+<div class="scroll-progress" id="scrollProgress"></div>
 
 <!-- ═══════ NAVBAR ═══════ -->
 <nav id="nav">
@@ -864,7 +1034,7 @@ body::before{
 
 <!-- ═══════ ASO TOOL PROMO ═══════ -->
 <section id="tool" class="section">
-  <div class="tool-card reveal">
+  <div class="tool-card reveal-scale">
     <div>
       <div class="tool-label">🔍 Free Tool</div>
       <h2 class="tool-title">ASO Keyword<br>Research Tool</h2>
@@ -919,13 +1089,13 @@ body::before{
 <!-- ═══════ ABOUT ═══════ -->
 <section id="about" class="section">
   <div class="about-grid">
-    <div class="about-img-wrap reveal">
+    <div class="about-img-wrap reveal-left">
       <div class="about-glow"></div>
       <img src="images/pic01.jpg" alt="AppChunks Team" loading="lazy"/>
     </div>
     <div>
-      <div class="section-tag reveal">About AppChunks</div>
-      <h2 class="section-title reveal">Transforming Ideas<br>Into Products</h2>
+      <div class="section-tag reveal-right">About AppChunks</div>
+      <h2 class="section-title reveal-right">Transforming Ideas<br>Into Products</h2>
       <p class="section-sub reveal" style="max-width:none;margin-bottom:20px">
         AppChunks is a passionate team of developers, designers, and strategists dedicated to building mobile experiences that matter. We don't just write code — we solve problems and create products that users love.
       </p>
@@ -1248,11 +1418,65 @@ document.querySelectorAll('.mm-link').forEach(a => {
   });
 });
 
-/* ── REVEAL ON SCROLL ── */
+/* ── REVEAL ON SCROLL (all variants) ── */
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
 }, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale,.reveal-rotate').forEach(el => observer.observe(el));
+
+/* ── SCROLL PROGRESS BAR ── */
+const scrollProg = document.getElementById('scrollProgress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  scrollProg.style.width = h > 0 ? ((window.scrollY / h) * 100) + '%' : '0%';
+}, {passive:true});
+
+/* ── CARD CURSOR GLOW TRACKING ── */
+document.querySelectorAll('.service-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--glow-x', (e.clientX - r.left) + 'px');
+    card.style.setProperty('--glow-y', (e.clientY - r.top) + 'px');
+  });
+});
+
+/* ── MAGNETIC BUTTON EFFECT ── */
+document.querySelectorAll('.btn-primary,.btn-outline,.btn-nav').forEach(btn => {
+  btn.addEventListener('mousemove', e => {
+    const r = btn.getBoundingClientRect();
+    const x = (e.clientX - r.left - r.width/2) * 0.15;
+    const y = (e.clientY - r.top - r.height/2) * 0.15;
+    btn.style.transform = `translate(${x}px,${y}px) translateY(-2px)`;
+  });
+  btn.addEventListener('mouseleave', () => {
+    btn.style.transform = '';
+  });
+});
+
+/* ── PARALLAX BLOBS ON SCROLL ── */
+const blobs = document.querySelectorAll('.blob');
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if(!ticking){
+    requestAnimationFrame(() => {
+      const s = window.scrollY;
+      blobs.forEach((b,i) => {
+        const speed = (i+1) * 0.03;
+        b.style.transform = `translateY(${s * speed}px)`;
+      });
+      ticking = false;
+    });
+    ticking = true;
+  }
+}, {passive:true});
+
+/* ── SMOOTH TEXT TYPING EFFECT FOR HERO (one-time) ── */
+const heroSub = document.querySelector('.hero-sub');
+if(heroSub && !heroSub.dataset.typed) {
+  heroSub.dataset.typed = '1';
+  const original = heroSub.textContent;
+  heroSub.style.opacity = '1';
+}
 
 /* ── COUNTER ANIMATION ── */
 function animateCounter(el) {

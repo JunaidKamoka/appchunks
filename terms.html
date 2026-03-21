@@ -123,8 +123,29 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px max
 .footer-legal a{font-size:0.8rem;color:var(--text3);transition:color 0.2s}
 .footer-legal a:hover{color:var(--accent);text-decoration:none}
 
-.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s,transform 0.6s}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.7s cubic-bezier(0.25,0.46,0.45,0.94),transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)}
 .reveal.in{opacity:1;transform:none}
+
+/* page load */
+@keyframes pageLoad{from{opacity:0}to{opacity:1}}
+body{animation:pageLoad 0.5s ease both}
+
+/* scroll progress */
+.scroll-progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,rgba(255,255,255,0.8),rgba(255,255,255,0.4));z-index:1001;width:0;transition:width 0.1s linear;box-shadow:0 0 8px rgba(255,255,255,0.3)}
+
+/* section hover lift */
+.policy-section{transition:transform 0.3s,box-shadow 0.3s}
+.policy-section:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+
+/* nav link underline */
+.nav-links a{position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:50%;width:0;height:2px;background:#ffffff;transition:width 0.3s,left 0.3s;border-radius:1px}
+.nav-links a:hover::after,.nav-links a.active::after{width:60%;left:20%}
+
+/* footer link underline */
+.footer-legal a{position:relative}
+.footer-legal a::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--accent);transition:width 0.3s}
+.footer-legal a:hover::after{width:100%}
 </style>
 </head>
 <body>
@@ -709,6 +730,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px max
   </div>
 </footer>
 
+<div class="scroll-progress" id="scrollProgress"></div>
 <script>
 const obs = new IntersectionObserver(entries => {
   entries.forEach(e => {
@@ -721,6 +743,13 @@ const obs = new IntersectionObserver(entries => {
   });
 }, {threshold:0.15, rootMargin:'0px 0px -20% 0px'});
 document.querySelectorAll('.policy-section, .reveal').forEach(el => obs.observe(el));
+
+// Scroll progress bar
+const sp = document.getElementById('scrollProgress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  sp.style.width = h > 0 ? ((window.scrollY / h) * 100) + '%' : '0%';
+}, {passive:true});
 </script>
 </body>
 </html>

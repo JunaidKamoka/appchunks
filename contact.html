@@ -288,9 +288,100 @@ footer{
 .footer-legal a:hover{color:var(--accent);text-decoration:none}
 
 /* ── ANIMATIONS ── */
-.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.65s,transform 0.65s}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s cubic-bezier(0.25,0.46,0.45,0.94),transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)}
 .reveal.in{opacity:1;transform:none}
-.reveal-d1{transition-delay:0.1s}.reveal-d2{transition-delay:0.2s}.reveal-d3{transition-delay:0.3s}
+.reveal-d1{transition-delay:0.1s}.reveal-d2{transition-delay:0.2s}.reveal-d3{transition-delay:0.3s}.reveal-d4{transition-delay:0.4s}.reveal-d5{transition-delay:0.5s}
+
+/* reveal variants */
+.reveal-left{opacity:0;transform:translateX(-40px);transition:opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94)}
+.reveal-left.in{opacity:1;transform:none}
+.reveal-right{opacity:0;transform:translateX(40px);transition:opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94)}
+.reveal-right.in{opacity:1;transform:none}
+.reveal-scale{opacity:0;transform:scale(0.92);transition:opacity 0.7s cubic-bezier(0.25,0.46,0.45,0.94),transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)}
+.reveal-scale.in{opacity:1;transform:none}
+
+/* page load */
+@keyframes pageLoad{from{opacity:0}to{opacity:1}}
+body{animation:pageLoad 0.5s ease both}
+
+/* scroll progress bar */
+.scroll-progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,rgba(255,255,255,0.8),rgba(255,255,255,0.4));z-index:1001;width:0;transition:width 0.1s linear;box-shadow:0 0 8px rgba(255,255,255,0.3)}
+
+/* hero glow pulse */
+@keyframes glowPulse{0%,100%{opacity:0.6}50%{opacity:1}}
+.hero-glow{animation:glowPulse 4s ease-in-out infinite}
+
+/* hero grid subtle drift */
+@keyframes gridDrift{0%{background-position:0 0}100%{background-position:48px 48px}}
+.hero-grid{animation:gridDrift 20s linear infinite}
+
+/* contact card hover effects */
+.contact-card{position:relative;overflow:hidden}
+.contact-card::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,0.04),transparent 60%);
+  opacity:0;transition:opacity 0.4s;pointer-events:none;
+}
+.contact-card:hover::after{opacity:1}
+
+/* icon bounce on card hover */
+@keyframes iconBounce{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.contact-card:hover .cc-icon{animation:iconBounce 0.5s cubic-bezier(0.25,0.46,0.45,0.94)}
+
+/* service chip ripple */
+.service-chip{position:relative;overflow:hidden}
+.service-chip::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle,rgba(255,255,255,0.15) 10%,transparent 60%);
+  transform:scale(0);opacity:0;transition:transform 0.4s,opacity 0.4s;
+}
+.service-chip:active::after{transform:scale(2.5);opacity:1;transition:0s}
+
+/* budget chip hover lift */
+.budget-chip,.timeline-chip{transition:all 0.25s cubic-bezier(0.175,0.885,0.32,1.275)}
+.budget-chip:hover,.timeline-chip:hover{transform:translateY(-2px)}
+
+/* form input focus glow */
+.form-input,.form-select,.form-textarea{transition:border-color 0.3s,box-shadow 0.3s,transform 0.2s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{transform:translateY(-1px);box-shadow:0 0 0 3px rgba(255,255,255,0.08),0 4px 12px rgba(0,0,0,0.2)}
+
+/* submit button magnetic effect */
+.form-submit{transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275)}
+.form-submit:active{transform:translateY(0) scale(0.97)}
+
+/* success animation */
+@keyframes successPop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.form-success .success-icon{animation:successPop 0.6s cubic-bezier(0.175,0.885,0.32,1.275) both}
+
+/* faq accordion smooth */
+.faq-item{transition:border-color 0.3s,box-shadow 0.3s,transform 0.2s}
+.faq-item:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.faq-item.open{box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+
+/* office card top bar animation */
+@keyframes slideRight{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.office-card::before{transform-origin:left}
+.office-card:hover::before{animation:slideRight 0.4s cubic-bezier(0.25,0.46,0.45,0.94) both}
+
+/* social button hover */
+.social-btn{transition:all 0.3s cubic-bezier(0.175,0.885,0.32,1.275)}
+.social-btn:hover{transform:translateY(-2px) scale(1.02)}
+
+/* r-badge float */
+@keyframes badgeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.r-badge{transition:all 0.3s;animation:badgeFloat 3s ease-in-out infinite}
+.r-badge:nth-child(2){animation-delay:0.5s}
+.r-badge:nth-child(3){animation-delay:1s}
+
+/* footer link underlines */
+.footer-legal a{position:relative}
+.footer-legal a::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--accent);transition:width 0.3s}
+.footer-legal a:hover::after{width:100%}
+
+/* nav link hover underline */
+.nav-links a{position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:50%;width:0;height:2px;background:#ffffff;transition:width 0.3s,left 0.3s;border-radius:1px}
+.nav-links a:hover::after,.nav-links a.active::after{width:60%;left:20%}
 
 /* ── TOAST ── */
 .toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:14px 20px;border-radius:12px;font-size:0.875rem;font-weight:500;background:var(--bg3);border:1px solid var(--border2);box-shadow:0 8px 32px rgba(0,0,0,0.5);color:var(--text);transform:translateY(80px);opacity:0;transition:all 0.35s;max-width:340px}
@@ -663,11 +754,40 @@ footer{
 (function(){
 'use strict';
 
-/* ── REVEAL ── */
+/* ── REVEAL (all variants) ── */
 const obs = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); }});
-}, {threshold:0.12});
-document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+}, {threshold:0.12, rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale').forEach(el => obs.observe(el));
+
+/* ── SCROLL PROGRESS BAR ── */
+const scrollProg = document.createElement('div');
+scrollProg.className = 'scroll-progress';
+document.body.prepend(scrollProg);
+window.addEventListener('scroll', () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  scrollProg.style.width = h > 0 ? ((window.scrollY / h) * 100) + '%' : '0%';
+}, {passive:true});
+
+/* ── CARD CURSOR GLOW TRACKING ── */
+document.querySelectorAll('.contact-card,.office-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+});
+
+/* ── MAGNETIC BUTTON EFFECT ── */
+document.querySelectorAll('.form-submit,.btn-nav,.btn-reset').forEach(btn => {
+  btn.addEventListener('mousemove', e => {
+    const r = btn.getBoundingClientRect();
+    const x = (e.clientX - r.left - r.width/2) * 0.12;
+    const y = (e.clientY - r.top - r.height/2) * 0.12;
+    btn.style.transform = `translate(${x}px,${y}px) translateY(-2px)`;
+  });
+  btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+});
 
 /* ── SERVICE CHIPS ── */
 let selectedServices = [];

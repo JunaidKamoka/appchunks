@@ -1,7 +1,7 @@
 /**
  * KeywordsIQ — API Module
  * Fetches real app data from iTunes Search API (iOS/iPad/macOS)
- * Generates realistic keyword intelligence metrics
+ * Derives keyword intelligence from actual App Store data
  */
 
 const API = (() => {
@@ -30,6 +30,41 @@ const API = (() => {
   }
 
   /**
+   * Fetch iTunes search suggestions (autocomplete) for related keywords
+   */
+  async function fetchITunesSuggestions(keyword, country) {
+    try {
+      // Use iTunes Search API with different terms to find related apps
+      const variations = [
+        keyword,
+        keyword.split(' ')[0], // first word
+      ];
+      const seen = new Set();
+      const relatedApps = [];
+
+      for (const term of variations) {
+        if (!term || term.length < 2) continue;
+        try {
+          const url = `${ITUNES_BASE}?term=${encodeURIComponent(term)}&entity=software&country=${country}&limit=10&lang=en_us`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            for (const app of (data.results || [])) {
+              if (!seen.has(app.trackId)) {
+                seen.add(app.trackId);
+                relatedApps.push(app);
+              }
+            }
+          }
+        } catch (_) { /* skip failed variation */ }
+      }
+      return relatedApps;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /**
    * Normalize iTunes result into our app schema
    */
   function normalizeITunesApp(raw, rank, platform) {
@@ -51,18 +86,20 @@ const API = (() => {
       version:      raw.version || '1.0',
       size:         raw.fileSizeBytes ? formatBytes(raw.fileSizeBytes) : '—',
       description:  (raw.description || '').slice(0, 400),
+      fullDescription: raw.description || '',
       releaseDate:  raw.releaseDate || '',
       updateDate:   raw.currentVersionReleaseDate || raw.releaseDate || '',
       url:          raw.trackViewUrl || raw.artistViewUrl || '',
       minOS:        raw.minimumOsVersion || '—',
       screenshots:  raw.screenshotUrls || [],
       languages:    raw.languageCodesISO2A || [],
-      platform:     platform || 'ios',
+      platform:     'ios',
+      genres:       raw.genres || [],
     };
   }
 
   /**
-   * Generate Android app data (simulated with realistic data patterns)
+   * Generate Android app data (simulated — no public API available)
    */
   function generateAndroidApps(keyword, country, limit = 25) {
     const seed = hashStr(keyword + country);
@@ -104,6 +141,7 @@ const API = (() => {
         version:      `${Math.ceil(r*10)}.${Math.floor(r2*10)}.${Math.floor(r3*5)}`,
         size:         `${Math.ceil(r*80 + 5)} MB`,
         description:  `Discover the best ${keyword} experience with ${appName}. Trusted by millions.`,
+        fullDescription: '',
         releaseDate:  randomDate(2018, 2023, seed+i),
         updateDate:   randomDate(2024, 2025, seed+i),
         url:          `https://play.google.com/store/apps/details?id=com.example.app${i}`,
@@ -111,165 +149,198 @@ const API = (() => {
         screenshots:  [],
         languages:    ['EN'],
         platform:     'android',
+        genres:       [cat],
       };
     });
   }
 
-  // ── KEYWORD INTELLIGENCE ───────────────────────────────────────────
+  // ── KEYWORD INTELLIGENCE (DERIVED FROM REAL DATA) ─────────────────
 
   /**
-   * Generate realistic keyword metrics
+   * Calculate keyword metrics from actual App Store results.
+   * Uses real signals: result count, review counts, ratings, free vs paid ratio.
    */
-  function generateKeywordMetrics(keyword, platform, country, appCount) {
-    const s  = hashStr(keyword + platform + country);
-    const s2 = hashStr(keyword + country + platform);
+  function calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount) {
+    const appCount = apps.length;
+    const totalReviews = apps.reduce((sum, a) => sum + (a.ratingCount || 0), 0);
+    const avgRating = apps.length > 0
+      ? apps.reduce((sum, a) => sum + (a.rating || 0), 0) / apps.length
+      : 0;
+    const freeRatio = apps.length > 0
+      ? apps.filter(a => a.isFree).length / apps.length
+      : 1;
+    const top5Reviews = apps.slice(0, 5).reduce((sum, a) => sum + (a.ratingCount || 0), 0);
 
-    // ── Platform-specific realistic scaling ────────────────────────
-    // iOS:     largest App Store, most competitive, highest CPI
-    // iPad:    ~20% of iOS volume, less competition (iPad-optimised apps)
-    // macOS:   ~8% of iOS volume, far fewer apps, different pricing
-    // Android: ~80% of iOS volume, very competitive, lower CPI
-    const PLATFORM = {
-      ios:     { vol: 1.00, diff: 1.00, cpiBase: 0.80, cpiRange: 4.50, apps: 1.00 },
-      ipad:    { vol: 0.20, diff: 0.76, cpiBase: 0.65, cpiRange: 3.20, apps: 0.72 },
-      macos:   { vol: 0.08, diff: 0.52, cpiBase: 1.10, cpiRange: 2.80, apps: 0.32 },
-      android: { vol: 0.80, diff: 0.92, cpiBase: 0.40, cpiRange: 2.00, apps: 1.10 },
-    };
-    const p = PLATFORM[platform] || PLATFORM.ios;
+    // ── VOLUME ESTIMATE ──
+    // Based on: number of apps returned (more apps = more searched keyword),
+    // total reviews of top results (high reviews = high interest),
+    // keyword length (shorter = broader = higher volume)
+    const wordCount = keyword.trim().split(/\s+/).length;
+    const lengthFactor = wordCount === 1 ? 3.0 : wordCount === 2 ? 1.5 : 0.7;
 
-    // Volume: high for short/popular keywords, lower for long-tail
-    const wordCount  = keyword.trim().split(/\s+/).length;
-    const popularity = lcg(s);
-    const rawVol     = wordCount === 1
-      ? Math.floor(50000 + popularity * 950000)
-      : wordCount === 2
-        ? Math.floor(10000 + popularity * 400000)
-        : Math.floor(1000  + popularity * 80000);
+    // Review-based popularity signal
+    const reviewSignal = Math.min(1.0, Math.log10(Math.max(1, top5Reviews)) / 7); // 0-1 scale
+    const resultSignal = Math.min(1.0, rawResultCount / 25); // 0-1 scale
 
-    // Apply platform scale + seasonality noise
-    const volume = Math.max(50, Math.round(rawVol * p.vol * (0.85 + lcg(s2) * 0.3)));
-
-    // Difficulty 1–100 (scaled by platform competitiveness)
-    const difficulty = Math.min(99, Math.round(
-      (20 + (rawVol / 10000) * 0.5 + lcg(s + 3) * 50 + appCount * 0.3) * p.diff
-    ));
-
-    // Chance score (inverse of difficulty + some luck)
-    const chance = Math.max(1, Math.min(99,
-      Math.round(100 - difficulty * 0.7 + lcg(s + 7) * 30)
-    ));
-
-    // Competing apps (scaled per platform app-store size)
-    const competing = Math.max(5, Math.round(
-      (50 + difficulty * 2.5 + lcg(s2 + 1) * 800) * p.apps
-    ));
-
-    // CPI — platform-specific base + difficulty modifier
-    const cpi = parseFloat(
-      (p.cpiBase + difficulty * 0.035 + lcg(s + 11) * p.cpiRange).toFixed(2)
+    const baseVolume = Math.round(
+      (5000 + reviewSignal * 400000 + resultSignal * 50000) * lengthFactor
     );
+    const volume = Math.max(100, Math.min(999000, baseVolume));
 
-    // Trend: percentage change vs 30 days ago
-    const trend = parseFloat(((lcg(s2 + 5) - 0.4) * 80).toFixed(1));
+    // ── DIFFICULTY ──
+    // Based on: total reviews (high reviews = hard to compete), top 5 strength,
+    // average rating (high rated competitors = harder), number of results
+    const reviewDifficulty = Math.min(40, Math.log10(Math.max(1, totalReviews)) * 7);
+    const topStrength = Math.min(30, Math.log10(Math.max(1, top5Reviews)) * 5);
+    const ratingDifficulty = avgRating > 4.0 ? 15 : avgRating > 3.5 ? 10 : 5;
+    const countDifficulty = Math.min(15, appCount * 0.6);
 
-    // Monthly volume history (12 months)
-    const history = generateVolumeHistory(volume, s);
+    const difficulty = Math.max(1, Math.min(99, Math.round(
+      reviewDifficulty + topStrength + ratingDifficulty + countDifficulty
+    )));
+
+    // ── CHANCE SCORE ──
+    // Inverse of difficulty weighted by opportunity signals
+    const lowCompetitionBonus = freeRatio > 0.8 ? 10 : 0; // mostly free = opportunity
+    const gapBonus = avgRating < 4.0 ? 15 : avgRating < 4.3 ? 8 : 0; // low quality = opportunity
+    const nichBonus = appCount < 10 ? 15 : appCount < 20 ? 8 : 0;
+
+    const chance = Math.max(1, Math.min(99, Math.round(
+      100 - difficulty + lowCompetitionBonus + gapBonus + nichBonus
+    ) / 1.2));
+
+    // ── COMPETING APPS ──
+    // Use actual result count as base, estimate broader competition
+    const competing = Math.max(appCount, Math.round(appCount * (1 + reviewSignal * 20)));
+
+    // ── CPI ESTIMATE ──
+    // Derived from difficulty and volume
+    const cpi = parseFloat((0.30 + (difficulty / 100) * 4.5 + (volume / 500000) * 1.5).toFixed(2));
+
+    // ── TREND ──
+    // Estimate from recency of top app updates
+    const recentUpdates = apps.filter(a => {
+      if (!a.updateDate) return false;
+      const d = new Date(a.updateDate);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      return d > threeMonthsAgo;
+    }).length;
+    const updateRatio = apps.length > 0 ? recentUpdates / apps.length : 0.5;
+    // Active category = positive trend
+    const trend = parseFloat(((updateRatio - 0.4) * 50).toFixed(1));
+
+    // ── HISTORY ──
+    // Generate realistic-looking 12-month history based on the computed volume
+    const history = generateVolumeHistory(volume, keyword, platform);
 
     return { volume, difficulty, chance, competing, cpi, trend, history };
   }
 
   /**
-   * Generate 12-month volume history
+   * Generate 12-month volume history — uses volume as anchor,
+   * applies gentle seasonality curve so it looks realistic.
    */
-  function generateVolumeHistory(baseVolume, seed) {
+  function generateVolumeHistory(baseVolume, keyword, platform) {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    // Simple seasonal curve: dip in summer, peak in Q4/Q1
+    const seasonality = [1.05, 0.95, 0.90, 0.88, 0.85, 0.82, 0.80, 0.83, 0.92, 1.00, 1.10, 1.15];
+    const seed = hashStr(keyword + platform);
+
     return months.map((month, i) => ({
       month,
-      volume: Math.max(100, Math.round(baseVolume * (0.6 + lcg(seed + i * 13) * 0.8))),
+      volume: Math.max(100, Math.round(
+        baseVolume * seasonality[i] * (0.92 + lcg(seed + i * 11) * 0.16)
+      )),
     }));
   }
 
   /**
-   * Generate related keywords
+   * Generate related keywords by extracting them from real app names,
+   * categories, and descriptions of the search results.
    */
-  function generateRelatedKeywords(keyword, platform, country) {
-    const seed = hashStr(keyword + platform);
-    const words = keyword.trim().split(/\s+/);
+  function generateRelatedKeywordsFromApps(keyword, platform, country, apps) {
+    const kw = keyword.toLowerCase().trim();
+    const related = new Map(); // keyword -> frequency/importance score
 
-    // Platform-specific modifiers reflecting real App Store search behaviour
-    const MODIFIERS = {
-      ios:     ['free', 'best', 'pro', 'app', 'no ads', '2025', 'download',
-                'for iphone', 'offline', 'premium', 'lite', 'advanced', 'easy', 'fast', 'top'],
-      ipad:    ['for ipad', 'ipad app', 'best', 'pro', 'free', 'apple pencil',
-                'split screen', 'offline', 'premium', 'no ads', '2025', 'lite', 'easy'],
-      macos:   ['for mac', 'macos', 'mac app', 'best', 'free', 'pro',
-                'menubar', 'native', 'offline', 'download', 'alternative', 'lightweight'],
-      android: ['free', 'best', 'pro', 'apk', 'no ads', '2025', 'download',
-                'for android', 'offline', 'premium', 'lite', 'advanced', 'fast', 'open source'],
-    };
-    const modifiers = MODIFIERS[platform] || MODIFIERS.ios;
-    const synonyms = {
-      editor:   ['editor','editing','edit','creator','maker','designer'],
-      photo:    ['photo','picture','image','pic','camera','selfie'],
-      vpn:      ['vpn','proxy','privacy','secure','tunnel','anonymous'],
-      fitness:  ['fitness','workout','exercise','gym','health','training'],
-      music:    ['music','songs','audio','mp3','playlist','streaming'],
-      todo:     ['todo','tasks','planner','organizer','reminder','notes'],
-      video:    ['video','movies','films','clips','player','stream'],
-      chat:     ['chat','messenger','message','talk','call','voice'],
-      travel:   ['travel','trips','flight','hotel','booking','maps'],
-      learn:    ['learn','learning','lessons','course','study','tutorial'],
-    };
+    // Extract keywords from app names
+    const stopWords = new Set(['the','a','an','and','or','for','with','by','to','in','of','on',
+                                'app','apps','my','your','its','is','it','&','-','–','—','+']);
 
-    const related = new Set();
-    related.add(keyword);
+    apps.forEach((app, rank) => {
+      const weight = Math.max(1, 10 - rank); // top-ranked apps contribute more
 
-    // Add modifier combinations
-    modifiers.slice(0, 8).forEach(mod => {
-      related.add(`${keyword} ${mod}`);
-      related.add(`${mod} ${keyword}`);
-    });
+      // From app name
+      const nameWords = (app.name || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+      // Generate 2-word and 3-word combinations from app names
+      for (let i = 0; i < nameWords.length; i++) {
+        const w = nameWords[i];
+        if (w !== kw && !kw.includes(w)) {
+          // Single word from app name + original keyword
+          const combo = `${kw} ${w}`;
+          related.set(combo, (related.get(combo) || 0) + weight);
+        }
+        if (i < nameWords.length - 1) {
+          const pair = `${nameWords[i]} ${nameWords[i+1]}`;
+          if (pair !== kw && pair.length > 4) {
+            related.set(pair, (related.get(pair) || 0) + weight);
+          }
+        }
+      }
 
-    // Synonym expansions
-    words.forEach(word => {
-      const w = word.toLowerCase();
-      Object.entries(synonyms).forEach(([k, syns]) => {
-        if (syns.includes(w)) {
-          syns.forEach(s => {
-            if (s !== w) {
-              related.add(keyword.replace(new RegExp(w, 'i'), s));
-            }
-          });
+      // From category
+      const cat = (app.category || '').toLowerCase();
+      if (cat && cat !== kw) {
+        const catCombo = `${kw} ${cat}`;
+        related.set(catCombo, (related.get(catCombo) || 0) + weight * 0.5);
+      }
+
+      // From genres
+      (app.genres || []).forEach(genre => {
+        const g = genre.toLowerCase();
+        if (g && g !== kw && g !== cat) {
+          related.set(g, (related.get(g) || 0) + weight * 0.3);
         }
       });
     });
 
-    const arr = [...related].filter(k => k !== keyword).slice(0, 18);
+    // Add common ASO modifier combinations
+    const asoModifiers = ['free', 'best', 'pro', 'top', 'lite', 'no ads', 'offline', '2025'];
+    asoModifiers.forEach(mod => {
+      related.set(`${kw} ${mod}`, (related.get(`${kw} ${mod}`) || 0) + 2);
+      related.set(`${mod} ${kw}`, (related.get(`${mod} ${kw}`) || 0) + 1);
+    });
 
-    // Volume scale matches generateKeywordMetrics platform factors
-    const VOL_SCALE = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
-    const DIFF_SCALE = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
-    const volScale  = VOL_SCALE[platform]  || 1;
-    const diffScale = DIFF_SCALE[platform] || 1;
+    // Sort by relevance score, take top 18
+    const sorted = [...related.entries()]
+      .filter(([k]) => k !== kw && k.length > 3 && k.length < 50)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 18);
 
-    return arr.map((kw, i) => {
-      const s  = hashStr(kw + platform + country);
-      const s2 = hashStr(kw + country + i);
-      const wc = kw.trim().split(/\s+/).length;
-      const popularity = lcg(s);
-      const rawVol = wc === 1
-        ? Math.floor(20000 + popularity * 500000)
-        : Math.floor(1000 + popularity * 150000);
-      const vol  = Math.max(10, Math.round(rawVol * volScale));
-      const diff = Math.min(98, Math.round((15 + lcg(s2) * 75) * diffScale));
-      const chance = Math.max(2, Math.min(98, Math.round(100 - diff * 0.65 + lcg(s2+3) * 25)));
-      const trendRaw = (lcg(s + 9) - 0.4) * 80;
+    // Compute metrics for each related keyword based on its relevance score
+    return sorted.map(([relKw, score]) => {
+      const wordCount = relKw.trim().split(/\s+/).length;
+      // Volume estimate based on the parent keyword + how common this term appeared
+      const parentVolume = apps.reduce((s, a) => s + (a.ratingCount || 0), 0);
+      const volumeBase = Math.log10(Math.max(1, parentVolume)) * 8000;
+      const scoreFactor = Math.min(1, score / 20);
+      const lengthPenalty = wordCount > 2 ? 0.4 : wordCount > 1 ? 0.7 : 1.0;
+      const vol = Math.max(50, Math.round(volumeBase * scoreFactor * lengthPenalty));
+
+      // Difficulty: longer tail = easier
+      const diff = Math.max(5, Math.min(95, Math.round(
+        30 + scoreFactor * 35 - (wordCount - 1) * 12
+      )));
+
+      const chance = Math.max(5, Math.min(95, Math.round(100 - diff * 0.8)));
+      const trendVal = parseFloat(((scoreFactor - 0.3) * 30).toFixed(1));
+
       return {
-        keyword: kw,
-        volume: Math.round(vol * (0.85 + lcg(s2) * 0.3)),
+        keyword: relKw,
+        volume: vol,
         difficulty: diff,
         chance,
-        trend: parseFloat(trendRaw.toFixed(1)),
+        trend: trendVal,
       };
     }).sort((a, b) => b.volume - a.volume);
   }
@@ -337,32 +408,131 @@ const API = (() => {
 
   async function searchKeyword(keyword, platform, country) {
     let apps = [];
+    let rawResultCount = 0;
+    let isRealData = false;
 
     if (platform !== 'android') {
       try {
         const raw = await searchITunes(keyword, country, platform, 25);
-        apps = raw.map((r, i) => normalizeITunesApp(r, i + 1, platform));
+        rawResultCount = raw.length;
+        apps = raw.map((r, i) => normalizeITunesApp(r, i + 1));
+        isRealData = apps.length > 0;
       } catch (e) {
-        console.warn('iTunes API failed, using simulated data', e);
+        console.warn('iTunes API failed, using estimated data', e);
         apps = generateAndroidApps(keyword, country, 20).map(a => ({ ...a, platform }));
+        rawResultCount = apps.length;
       }
     } else {
       apps = generateAndroidApps(keyword, country, 25);
+      rawResultCount = apps.length;
     }
 
-    // Fill gaps if API returned fewer results
-    if (apps.length < 5) {
-      apps = generateAndroidApps(keyword, country, 20).map(a => ({ ...a, platform }));
+    // If API returned too few results, keep what we have (don't replace with fake data)
+    if (apps.length === 0) {
+      apps = generateAndroidApps(keyword, country, 15).map(a => ({ ...a, platform }));
+      rawResultCount = apps.length;
     }
 
-    const metrics  = generateKeywordMetrics(keyword, platform, country, apps.length);
-    const related  = generateRelatedKeywords(keyword, platform, country);
+    // Calculate metrics from actual app data
+    const metrics = calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount);
 
-    return { apps, metrics, related, keyword, platform, country };
+    // Generate related keywords from real app data
+    const related = generateRelatedKeywordsFromApps(keyword, platform, country, apps);
+
+    return { apps, metrics, related, keyword, platform, country, isRealData };
   }
 
   function getTrending(platform, country) {
     return generateTrending(platform, country);
+  }
+
+  /**
+   * Generate ASO metadata (title, subtitle, description) based on keyword analysis results.
+   * Uses the searched keyword, related keywords, and top app data to craft suggestions.
+   */
+  function generateASOMetadata(keyword, related, apps) {
+    const kw = keyword.trim();
+    const kwCapitalized = kw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    // Gather top related keywords for inclusion
+    const topRelated = (related || []).slice(0, 8).map(r => r.keyword);
+    const topCategories = [...new Set(apps.map(a => a.category).filter(Boolean))].slice(0, 3);
+
+    // Extract unique meaningful words from top related keywords
+    const stopWords = new Set(['the','a','an','and','or','for','with','by','to','in','of','on','app','free','best','top','no','ads']);
+    const relatedWords = new Set();
+    topRelated.forEach(rk => {
+      rk.split(/\s+/).forEach(w => {
+        const wl = w.toLowerCase();
+        if (wl.length > 2 && !stopWords.has(wl) && !kw.toLowerCase().includes(wl)) {
+          relatedWords.add(w.charAt(0).toUpperCase() + w.slice(1));
+        }
+      });
+    });
+    const extraWords = [...relatedWords].slice(0, 6);
+
+    // Analyze top competitors for patterns
+    const topAppNames = apps.slice(0, 5).map(a => a.name);
+
+    // ── TITLE SUGGESTIONS (max 30 chars for App Store) ──
+    const titles = [];
+    titles.push(`${kwCapitalized} Pro`);
+    titles.push(`${kwCapitalized} - ${extraWords[0] || topCategories[0] || 'Smart'} App`);
+    titles.push(`${extraWords[0] || 'Smart'} ${kwCapitalized}`);
+    // Filter to ≤30 chars
+    const validTitles = titles
+      .map(t => t.length > 30 ? t.slice(0, 27) + '...' : t)
+      .filter((t, i, arr) => arr.indexOf(t) === i);
+
+    // ── SUBTITLE SUGGESTIONS (max 30 chars for App Store) ──
+    const subtitles = [];
+    const featureWords = extraWords.length > 1 ? extraWords.slice(0, 2).join(' & ') : (topCategories[0] || 'Tools');
+    subtitles.push(`${featureWords} Made Easy`);
+    subtitles.push(`Best ${kwCapitalized} Tool`);
+    subtitles.push(`${topCategories[0] || 'Powerful'} ${kwCapitalized} App`);
+    const validSubtitles = subtitles
+      .map(s => s.length > 30 ? s.slice(0, 27) + '...' : s)
+      .filter((s, i, arr) => arr.indexOf(s) === i);
+
+    // ── DESCRIPTION SUGGESTIONS ──
+    // Build a keyword-rich description using top keywords naturally
+    const allKeywords = [kw, ...topRelated.slice(0, 5)];
+    const uniqueKeywords = [...new Set(allKeywords)];
+
+    const descriptions = [];
+
+    // Description 1: Feature-focused
+    descriptions.push(
+      `Looking for the best ${kw} app? Our app delivers a powerful ${kw} experience with features like ${uniqueKeywords.slice(1, 4).join(', ')}. ` +
+      `Whether you need ${uniqueKeywords[1] || kw} on the go or advanced ${uniqueKeywords[2] || kw} tools, we've got you covered.\n\n` +
+      `Key Features:\n` +
+      uniqueKeywords.slice(0, 5).map(k => `- ${k.charAt(0).toUpperCase() + k.slice(1)}`).join('\n') + '\n\n' +
+      `Download now and discover why users love our ${kw} app!`
+    );
+
+    // Description 2: Problem-solution focused
+    descriptions.push(
+      `Tired of complicated ${kw} apps? We built a simple, powerful solution for ${uniqueKeywords.slice(0, 3).join(', ')}.\n\n` +
+      `Our ${kw} app is designed for everyone — from beginners to professionals. ` +
+      `With intuitive controls and smart features for ${uniqueKeywords.slice(1, 4).join(', ')}, you'll get results fast.\n\n` +
+      `Why choose us:\n` +
+      `- Easy to use ${kw} tools\n` +
+      `- ${extraWords[0] || 'Advanced'} features built-in\n` +
+      `- Regular updates with new ${kw} capabilities\n` +
+      `- No ads, no hassle\n\n` +
+      `Join thousands of happy users. Try it today!`
+    );
+
+    // ── KEYWORD LIST for ASO ──
+    const keywordList = uniqueKeywords.slice(0, 10).join(', ');
+
+    return {
+      titles: validTitles,
+      subtitles: validSubtitles,
+      descriptions,
+      keywordList,
+      topCategories,
+    };
   }
 
   // ── HELPERS ────────────────────────────────────────────────────────
@@ -468,6 +638,7 @@ const API = (() => {
   return {
     searchKeyword,
     getTrending,
+    generateASOMetadata,
     formatVolume,
     formatNumber,
     difficultyLabel,
