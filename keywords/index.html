@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASO Keyword Research — AppChunks</title>
+  <meta name="description" content="Free ASO keyword research tool by AppChunks. Find search volumes, difficulty scores, and top-ranking apps across iOS, iPad, macOS, and Android." />
+  <link rel="icon" type="image/x-icon" href="../images/favicon.ico" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Feather Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.js"></script>
+  <!-- AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1702155776302125" crossorigin="anonymous"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="/" class="sidebar-logo-link">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="url(#lg1)"/>
+          <path d="M8 22L13 12L18 18L22 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="24" cy="8" r="2.5" fill="#4ade80"/>
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="sidebar-brand">AppChunks<span class="brand-sub">ASO</span></span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-view="search">
+        <i data-feather="search"></i><span>Keyword Search</span>
+      </a>
+      <a href="#" class="nav-item" data-view="trending">
+        <i data-feather="trending-up"></i><span>Trending</span>
+      </a>
+      <a href="#" class="nav-item" data-view="competitors">
+        <i data-feather="users"></i><span>Competitors</span>
+      </a>
+      <a href="#" class="nav-item" data-view="history">
+        <i data-feather="clock"></i><span>History</span>
+      </a>
+      <a href="#" class="nav-item" data-view="saved">
+        <i data-feather="bookmark"></i><span>Saved</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a href="/" class="nav-item nav-back">
+        <i data-feather="arrow-left"></i><span>Back to AppChunks</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <i data-feather="zap"></i>
+        <div>
+          <div class="plan-name">Free Tool</div>
+          <div class="plan-limit">by AppChunks</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main-content" id="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <i data-feather="menu"></i>
+      </button>
+
+      <!-- PLATFORM SWITCHER -->
+      <div class="platform-switcher">
+        <button class="platform-btn active" data-platform="ios">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          iOS
+        </button>
+        <button class="platform-btn" data-platform="ipad">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
+          iPad
+        </button>
+        <button class="platform-btn" data-platform="macos">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M6 20h12" stroke-linecap="round"/></svg>
+          macOS
+        </button>
+        <button class="platform-btn" data-platform="android">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341c-.287 0-.52-.233-.52-.52V10.18c0-.286.233-.52.52-.52.286 0 .52.234.52.52v4.642c0 .287-.234.52-.52.52zm-11.046 0c-.287 0-.52-.233-.52-.52V10.18c0-.286.233-.52.52-.52.286 0 .52.234.52.52v4.642c0 .287-.234.52-.52.52zm1.565-9.4l1.09-1.958c.07-.127.027-.286-.1-.357-.127-.07-.286-.027-.357.1l-1.104 1.982C6.526 5.192 5.42 5.773 4.636 6.65h14.729c-.784-.878-1.89-1.459-2.935-1.94L15.325 2.726c-.07-.127-.23-.17-.357-.1-.127.07-.17.23-.1.357l1.09 1.958C15.265 4.783 14.668 4.65 14 4.65H10c-.668 0-1.265.133-1.958.291zM4.5 7.65v7.2c0 .828.672 1.5 1.5 1.5h12c.828 0 1.5-.672 1.5-1.5V7.65H4.5zm5.5 9.7v1.65c0 .287.233.52.52.52h3.96c.287 0 .52-.233.52-.52V17.35H10z"/></svg>
+          Android
+        </button>
+      </div>
+
+      <!-- COUNTRY SELECTOR -->
+      <div class="country-selector">
+        <i data-feather="globe"></i>
+        <select id="countrySelect">
+          <option value="us">🇺🇸 United States</option>
+          <option value="gb">🇬🇧 United Kingdom</option>
+          <option value="de">🇩🇪 Germany</option>
+          <option value="fr">🇫🇷 France</option>
+          <option value="jp">🇯🇵 Japan</option>
+          <option value="cn">🇨🇳 China</option>
+          <option value="br">🇧🇷 Brazil</option>
+          <option value="in">🇮🇳 India</option>
+          <option value="au">🇦🇺 Australia</option>
+          <option value="ca">🇨🇦 Canada</option>
+          <option value="kr">🇰🇷 South Korea</option>
+          <option value="ru">🇷🇺 Russia</option>
+          <option value="mx">🇲🇽 Mexico</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- ── SEARCH VIEW ── -->
+    <section class="search-section" id="view-search">
+      <div class="search-hero">
+        <div class="hero-badge">Free ASO Tool by AppChunks</div>
+        <h1>Keyword Research</h1>
+        <p>Discover search volumes, difficulty scores, and top-ranking apps across every platform.</p>
+
+        <div class="search-bar-wrap">
+          <i data-feather="search" class="search-icon"></i>
+          <input type="text" id="keywordInput" class="search-input"
+            placeholder="Enter a keyword (e.g. photo editor, vpn, fitness…)"
+            autocomplete="off" spellcheck="false" />
+          <button class="btn-search" id="searchBtn">
+            <span>Analyze</span>
+            <i data-feather="arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="suggestions" id="suggestions"></div>
+
+        <div class="bulk-toggle-wrap">
+          <button class="btn-ghost" id="bulkToggle">
+            <i data-feather="list"></i> Bulk Keyword Analysis
+          </button>
+        </div>
+        <div class="bulk-input-wrap hidden" id="bulkInputWrap">
+          <textarea id="bulkInput" placeholder="Enter multiple keywords, one per line…" rows="5"></textarea>
+          <button class="btn-primary" id="bulkSearchBtn">Analyze All</button>
+        </div>
+      </div>
+
+      <!-- AdSense Banner -->
+      <div class="ad-slot ad-top">
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-1702155776302125"
+          data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+
+      <!-- LOADING -->
+      <div class="loading-state hidden" id="loadingState">
+        <div class="spinner"></div>
+        <p>Fetching keyword intelligence…</p>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="results-container hidden" id="resultsContainer">
+
+        <!-- KEYWORD HEADER CARD -->
+        <div class="keyword-header-card">
+          <div class="kw-title-row">
+            <h2 id="resultKeyword"></h2>
+            <div class="kw-actions">
+              <button class="btn-icon" id="saveKeywordBtn" title="Save keyword"><i data-feather="bookmark"></i></button>
+              <button class="btn-icon" id="exportBtn" title="Export CSV"><i data-feather="download"></i></button>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon volume-icon"><i data-feather="bar-chart-2"></i></div>
+              <div class="metric-info">
+                <div class="metric-label">Monthly Volume</div>
+                <div class="metric-value" id="metricVolumeVal">—</div>
+                <div class="metric-sub" id="metricVolumeSub"></div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon diff-icon"><i data-feather="target"></i></div>
+              <div class="metric-info">
+                <div class="metric-label">Difficulty</div>
+                <div class="metric-value" id="metricDiffVal">—</div>
+                <div class="metric-sub" id="metricDiffSub"></div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon chance-icon"><i data-feather="trending-up"></i></div>
+              <div class="metric-info">
+                <div class="metric-label">Chance Score</div>
+                <div class="metric-value" id="metricChanceVal">—</div>
+                <div class="metric-sub" id="metricChanceSub"></div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon apps-icon"><i data-feather="grid"></i></div>
+              <div class="metric-info">
+                <div class="metric-label">Competing Apps</div>
+                <div class="metric-value" id="metricAppsVal">—</div>
+                <div class="metric-sub" id="metricAppsSub"></div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon cpc-icon"><i data-feather="dollar-sign"></i></div>
+              <div class="metric-info">
+                <div class="metric-label">Avg CPI (Search Ads)</div>
+                <div class="metric-value" id="metricCpiVal">—</div>
+                <div class="metric-sub" id="metricCpiSub"></div>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon trend-icon"><i data-feather="activity"></i></div>
+              <div class="metric-info">
+                <div class="metric-label">30-Day Trend</div>
+                <div class="metric-value" id="metricTrendVal">—</div>
+                <div class="metric-sub" id="metricTrendSub"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHART -->
+          <div class="chart-section">
+            <div class="chart-header">
+              <h3>Volume Trend (12 Months)</h3>
+              <div class="chart-tabs">
+                <button class="chart-tab active" data-range="12m">12M</button>
+                <button class="chart-tab" data-range="6m">6M</button>
+                <button class="chart-tab" data-range="3m">3M</button>
+              </div>
+            </div>
+            <div class="chart-wrap"><canvas id="volumeChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- AdSense Mid -->
+        <div class="ad-slot">
+          <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-1702155776302125"
+            data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+
+        <!-- RELATED KEYWORDS -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3><i data-feather="link"></i> Related Keywords</h3>
+            <span class="section-badge" id="relatedCount">0</span>
+          </div>
+          <div class="related-table-wrap">
+            <table class="data-table" id="relatedTable">
+              <thead>
+                <tr>
+                  <th>Keyword</th>
+                  <th class="sortable" data-col="volume">Volume <i data-feather="chevrons-up-down"></i></th>
+                  <th class="sortable" data-col="difficulty">Difficulty <i data-feather="chevrons-up-down"></i></th>
+                  <th class="sortable" data-col="chance">Chance <i data-feather="chevrons-up-down"></i></th>
+                  <th>Trend</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="relatedTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TOP APPS -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3><i data-feather="award"></i> Top Ranking Apps</h3>
+            <div class="section-controls">
+              <select id="appsSortSelect" class="mini-select">
+                <option value="rank">By Rank</option>
+                <option value="rating">By Rating</option>
+                <option value="reviews">By Reviews</option>
+              </select>
+              <span class="section-badge" id="appsCount">0</span>
+            </div>
+          </div>
+          <div class="apps-list" id="appsList"></div>
+        </div>
+
+      </div><!-- /results -->
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="72" height="72" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="40" fill="rgba(99,102,241,0.08)"/>
+            <circle cx="36" cy="34" r="14" stroke="#6366f1" stroke-width="2.5" fill="none"/>
+            <path d="M46.5 46.5L57 57" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M30 34h12M36 28v12" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Start your keyword research</h3>
+        <p>Enter any keyword to see search volume, difficulty, and top-ranking apps on your selected platform.</p>
+        <div class="quick-searches">
+          <span class="qs-label">Try:</span>
+          <button class="qs-chip" data-kw="photo editor">photo editor</button>
+          <button class="qs-chip" data-kw="vpn">vpn</button>
+          <button class="qs-chip" data-kw="fitness tracker">fitness tracker</button>
+          <button class="qs-chip" data-kw="todo list">todo list</button>
+          <button class="qs-chip" data-kw="music player">music player</button>
+          <button class="qs-chip" data-kw="language learning">language learning</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TRENDING VIEW ── -->
+    <section class="hidden" id="view-trending">
+      <div class="view-header">
+        <h2>Trending Keywords</h2>
+        <p>Keywords gaining traction right now on <span id="trendingPlatformLabel">iOS</span></p>
+      </div>
+      <div class="trending-grid" id="trendingGrid"></div>
+    </section>
+
+    <!-- ── COMPETITORS VIEW ── -->
+    <section class="hidden" id="view-competitors">
+      <div class="view-header">
+        <h2>Competitor Analysis</h2>
+        <p>Analyze any app's keyword portfolio</p>
+      </div>
+      <div class="competitor-search-wrap">
+        <input type="text" id="competitorInput" class="search-input" placeholder="Enter app name…" />
+        <button class="btn-primary" id="competitorSearchBtn">Analyze</button>
+      </div>
+      <div class="competitor-results hidden" id="competitorResults"></div>
+    </section>
+
+    <!-- ── HISTORY VIEW ── -->
+    <section class="hidden" id="view-history">
+      <div class="view-header"><h2>Search History</h2><p>Your recent keyword searches</p></div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+
+    <!-- ── SAVED VIEW ── -->
+    <section class="hidden" id="view-saved">
+      <div class="view-header"><h2>Saved Keywords</h2><p>Your bookmarked keywords</p></div>
+      <div class="saved-list" id="savedList"></div>
+    </section>
+
+  </main>
+
+  <!-- APP MODAL -->
+  <div class="modal-overlay hidden" id="appModal">
+    <div class="modal-card" id="appModalCard">
+      <button class="modal-close" id="modalClose"><i data-feather="x"></i></button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
