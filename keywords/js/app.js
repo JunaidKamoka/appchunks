@@ -58,7 +58,7 @@
 
   // ── INIT ─────────────────────────────────────────────────────────
   function init() {
-    feather.replace();
+    try { feather.replace(); } catch(e) { console.warn('Feather icons unavailable', e); }
     bindEvents();
     renderHistoryView();
     renderSavedView();
@@ -328,7 +328,7 @@
     renderApps(apps);
 
     // Show results
-    feather.replace();
+    try { feather.replace(); } catch(e) {}
     els.resultsContainer.classList.remove('hidden');
   }
 
@@ -372,15 +372,15 @@
           data:  filtered.map(d => d.volume),
           fill:  true,
           tension: 0.4,
-          borderColor: '#6366f1',
+          borderColor: '#ffffff',
           borderWidth: 2,
-          pointBackgroundColor: '#6366f1',
+          pointBackgroundColor: '#ffffff',
           pointRadius: 3,
           pointHoverRadius: 5,
           backgroundColor: (ctx) => {
             const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 180);
-            g.addColorStop(0,   'rgba(99,102,241,0.3)');
-            g.addColorStop(1,   'rgba(99,102,241,0)');
+            g.addColorStop(0,   'rgba(255,255,255,0.15)');
+            g.addColorStop(1,   'rgba(255,255,255,0)');
             return g;
           },
         }],
@@ -392,7 +392,7 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1a1f2e',
+            backgroundColor: '#111111',
             borderColor:     'rgba(255,255,255,0.1)',
             borderWidth:     1,
             titleColor:      '#f0f2f8',
@@ -489,7 +489,7 @@
       });
     });
 
-    feather.replace();
+    try { feather.replace(); } catch(e) {}
   }
 
   // ── APPS LIST ─────────────────────────────────────────────────────
@@ -645,7 +645,7 @@
 
     els.appModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-    feather.replace();
+    try { feather.replace(); } catch(e) {}
   }
 
   function closeModal() {
@@ -786,7 +786,7 @@
       });
     });
 
-    feather.replace();
+    try { feather.replace(); } catch(e) {}
   }
 
   // ── SAVED ─────────────────────────────────────────────────────────
@@ -832,7 +832,7 @@
       });
     });
 
-    feather.replace();
+    try { feather.replace(); } catch(e) {}
   }
 
   // ── EXPORT CSV ────────────────────────────────────────────────────
@@ -875,7 +875,7 @@
     div.className = `toast ${type}`;
     div.innerHTML = `<i data-feather="${icons[type] || 'info'}"></i> ${escHtml(msg)}`;
     els.toastContainer.appendChild(div);
-    feather.replace();
+    try { feather.replace(); } catch(e) {}
     setTimeout(() => div.remove(), 3500);
   }
 
