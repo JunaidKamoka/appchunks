@@ -32,7 +32,7 @@ const API = (() => {
   /**
    * Normalize iTunes result into our app schema
    */
-  function normalizeITunesApp(raw, rank) {
+  function normalizeITunesApp(raw, rank, platform) {
     return {
       rank,
       id:           String(raw.trackId || raw.artistId),
@@ -57,7 +57,7 @@ const API = (() => {
       minOS:        raw.minimumOsVersion || '—',
       screenshots:  raw.screenshotUrls || [],
       languages:    raw.languageCodesISO2A || [],
-      platform:     'ios',
+      platform:     platform || 'ios',
     };
   }
 
@@ -124,22 +124,34 @@ const API = (() => {
     const s  = hashStr(keyword + platform + country);
     const s2 = hashStr(keyword + country + platform);
 
+    // ── Platform-specific realistic scaling ────────────────────────
+    // iOS:     largest App Store, most competitive, highest CPI
+    // iPad:    ~20% of iOS volume, less competition (iPad-optimised apps)
+    // macOS:   ~8% of iOS volume, far fewer apps, different pricing
+    // Android: ~80% of iOS volume, very competitive, lower CPI
+    const PLATFORM = {
+      ios:     { vol: 1.00, diff: 1.00, cpiBase: 0.80, cpiRange: 4.50, apps: 1.00 },
+      ipad:    { vol: 0.20, diff: 0.76, cpiBase: 0.65, cpiRange: 3.20, apps: 0.72 },
+      macos:   { vol: 0.08, diff: 0.52, cpiBase: 1.10, cpiRange: 2.80, apps: 0.32 },
+      android: { vol: 0.80, diff: 0.92, cpiBase: 0.40, cpiRange: 2.00, apps: 1.10 },
+    };
+    const p = PLATFORM[platform] || PLATFORM.ios;
+
     // Volume: high for short/popular keywords, lower for long-tail
     const wordCount  = keyword.trim().split(/\s+/).length;
-    const charLen    = keyword.length;
     const popularity = lcg(s);
-    const baseVol    = wordCount === 1
+    const rawVol     = wordCount === 1
       ? Math.floor(50000 + popularity * 950000)
       : wordCount === 2
         ? Math.floor(10000 + popularity * 400000)
         : Math.floor(1000  + popularity * 80000);
 
-    // Seasonality noise
-    const volume = Math.round(baseVol * (0.85 + lcg(s2) * 0.3));
+    // Apply platform scale + seasonality noise
+    const volume = Math.max(50, Math.round(rawVol * p.vol * (0.85 + lcg(s2) * 0.3)));
 
-    // Difficulty 1–100
+    // Difficulty 1–100 (scaled by platform competitiveness)
     const difficulty = Math.min(99, Math.round(
-      20 + (volume / 10000) * 0.5 + lcg(s + 3) * 50 + appCount * 0.3
+      (20 + (rawVol / 10000) * 0.5 + lcg(s + 3) * 50 + appCount * 0.3) * p.diff
     ));
 
     // Chance score (inverse of difficulty + some luck)
@@ -147,15 +159,18 @@ const API = (() => {
       Math.round(100 - difficulty * 0.7 + lcg(s + 7) * 30)
     ));
 
-    // Competing apps (correlated with platform/keyword)
-    const competing = Math.round(50 + difficulty * 2.5 + lcg(s2 + 1) * 800);
+    // Competing apps (scaled per platform app-store size)
+    const competing = Math.max(5, Math.round(
+      (50 + difficulty * 2.5 + lcg(s2 + 1) * 800) * p.apps
+    ));
 
-    // CPI (Cost per Install via Search Ads)
-    const cpi = parseFloat((0.5 + difficulty * 0.08 + lcg(s + 11) * 3).toFixed(2));
+    // CPI — platform-specific base + difficulty modifier
+    const cpi = parseFloat(
+      (p.cpiBase + difficulty * 0.035 + lcg(s + 11) * p.cpiRange).toFixed(2)
+    );
 
     // Trend: percentage change vs 30 days ago
-    const trendRaw = (lcg(s2 + 5) - 0.4) * 80;
-    const trend = parseFloat(trendRaw.toFixed(1));
+    const trend = parseFloat(((lcg(s2 + 5) - 0.4) * 80).toFixed(1));
 
     // Monthly volume history (12 months)
     const history = generateVolumeHistory(volume, s);
@@ -180,11 +195,19 @@ const API = (() => {
   function generateRelatedKeywords(keyword, platform, country) {
     const seed = hashStr(keyword + platform);
     const words = keyword.trim().split(/\s+/);
-    const modifiers = [
-      'free', 'best', 'pro', 'app', 'online', '2024', '2025', 'download',
-      'for iphone', 'for android', 'no ads', 'offline', 'premium', 'lite',
-      'advanced', 'easy', 'fast', 'simple', 'top',
-    ];
+
+    // Platform-specific modifiers reflecting real App Store search behaviour
+    const MODIFIERS = {
+      ios:     ['free', 'best', 'pro', 'app', 'no ads', '2025', 'download',
+                'for iphone', 'offline', 'premium', 'lite', 'advanced', 'easy', 'fast', 'top'],
+      ipad:    ['for ipad', 'ipad app', 'best', 'pro', 'free', 'apple pencil',
+                'split screen', 'offline', 'premium', 'no ads', '2025', 'lite', 'easy'],
+      macos:   ['for mac', 'macos', 'mac app', 'best', 'free', 'pro',
+                'menubar', 'native', 'offline', 'download', 'alternative', 'lightweight'],
+      android: ['free', 'best', 'pro', 'apk', 'no ads', '2025', 'download',
+                'for android', 'offline', 'premium', 'lite', 'advanced', 'fast', 'open source'],
+    };
+    const modifiers = MODIFIERS[platform] || MODIFIERS.ios;
     const synonyms = {
       editor:   ['editor','editing','edit','creator','maker','designer'],
       photo:    ['photo','picture','image','pic','camera','selfie'],
@@ -223,15 +246,22 @@ const API = (() => {
 
     const arr = [...related].filter(k => k !== keyword).slice(0, 18);
 
+    // Volume scale matches generateKeywordMetrics platform factors
+    const VOL_SCALE = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
+    const DIFF_SCALE = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
+    const volScale  = VOL_SCALE[platform]  || 1;
+    const diffScale = DIFF_SCALE[platform] || 1;
+
     return arr.map((kw, i) => {
       const s  = hashStr(kw + platform + country);
       const s2 = hashStr(kw + country + i);
       const wc = kw.trim().split(/\s+/).length;
       const popularity = lcg(s);
-      const vol = wc === 1
+      const rawVol = wc === 1
         ? Math.floor(20000 + popularity * 500000)
         : Math.floor(1000 + popularity * 150000);
-      const diff = Math.min(98, Math.round(15 + lcg(s2) * 75));
+      const vol  = Math.max(10, Math.round(rawVol * volScale));
+      const diff = Math.min(98, Math.round((15 + lcg(s2) * 75) * diffScale));
       const chance = Math.max(2, Math.min(98, Math.round(100 - diff * 0.65 + lcg(s2+3) * 25)));
       const trendRaw = (lcg(s + 9) - 0.4) * 80;
       return {
@@ -248,20 +278,50 @@ const API = (() => {
    * Generate trending keywords for a platform
    */
   function generateTrending(platform, country) {
-    const keywords = [
-      'ai assistant', 'photo editor', 'vpn free', 'workout tracker',
-      'sleep sounds', 'pdf scanner', 'language learning', 'video editor',
-      'budget tracker', 'meditation app', 'recipe finder', 'password manager',
-      'screen recorder', 'qr code scanner', 'flashcard maker', 'habit tracker',
-      'stock market', 'weather radar', 'podcast player', 'note taking app',
-    ];
+    // Platform-specific trending — reflects real App Store category leaders
+    const TRENDING = {
+      ios: [
+        'ai assistant', 'photo editor', 'vpn free', 'workout tracker',
+        'sleep sounds', 'pdf scanner', 'language learning', 'video editor',
+        'budget tracker', 'meditation app', 'recipe finder', 'password manager',
+        'screen recorder', 'qr code scanner', 'flashcard maker', 'habit tracker',
+        'stock market', 'weather radar', 'podcast player', 'note taking app',
+      ],
+      ipad: [
+        'drawing app', 'pdf editor', 'note taking', 'digital planner',
+        'video editing', 'reading app', 'spreadsheet app', 'presentation maker',
+        'annotate pdf', 'handwriting app', 'calendar planner', 'music production',
+        'photo editing', 'comic reader', 'language learning', 'coding app',
+        'document scanner', 'diagram tool', 'whiteboard app', 'split view browser',
+      ],
+      macos: [
+        'window manager', 'markdown editor', 'clipboard manager', 'screen capture',
+        'password manager', 'email client', 'video converter', 'pdf editor',
+        'time tracker', 'task manager', 'mind mapping', 'database app',
+        'text expander', 'ftp client', 'system cleaner', 'menubar app',
+        'code editor', 'vpn client', 'file manager', 'photo editor mac',
+      ],
+      android: [
+        'ai assistant', 'photo editor', 'vpn free', 'workout tracker',
+        'sleep sounds', 'pdf scanner', 'language learning', 'video editor',
+        'budget tracker', 'meditation', 'recipe app', 'password manager',
+        'screen recorder', 'qr scanner', 'flashcard maker', 'habit tracker',
+        'stock market', 'weather app', 'podcast player', 'notes app',
+      ],
+    };
+    const keywords = TRENDING[platform] || TRENDING.ios;
+
+    const T_VOL  = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
+    const T_DIFF = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
+    const tVol  = T_VOL[platform]  || 1;
+    const tDiff = T_DIFF[platform] || 1;
 
     return keywords.map((kw, i) => {
-      const s = hashStr(kw + platform + country + i);
+      const s  = hashStr(kw + platform + country + i);
       const s2 = hashStr(kw + country);
-      const vol = Math.floor(30000 + lcg(s) * 800000);
+      const vol   = Math.max(100, Math.round((30000 + lcg(s) * 800000) * tVol));
       const spike = Math.round(10 + lcg(s2) * 120);
-      const diff = Math.min(97, Math.round(20 + lcg(s+5) * 70));
+      const diff  = Math.min(97, Math.round((20 + lcg(s+5) * 70) * tDiff));
       return {
         rank: i + 1,
         keyword: kw,
@@ -281,7 +341,7 @@ const API = (() => {
     if (platform !== 'android') {
       try {
         const raw = await searchITunes(keyword, country, platform, 25);
-        apps = raw.map((r, i) => normalizeITunesApp(r, i + 1));
+        apps = raw.map((r, i) => normalizeITunesApp(r, i + 1, platform));
       } catch (e) {
         console.warn('iTunes API failed, using simulated data', e);
         apps = generateAndroidApps(keyword, country, 20).map(a => ({ ...a, platform }));

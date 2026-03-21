@@ -54,6 +54,7 @@
     historyList:    $('historyList'),
     savedList:      $('savedList'),
     trendingPlatformLabel: $('trendingPlatformLabel'),
+    sidebarBackdrop:       $('sidebarBackdrop'),
   };
 
   // ── INIT ─────────────────────────────────────────────────────────
@@ -106,13 +107,21 @@
         switchView(view);
         $$('.nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
-        if (window.innerWidth <= 900) els.sidebar.classList.remove('open');
+        if (window.innerWidth <= 900) {
+          els.sidebar.classList.remove('open');
+          els.sidebarBackdrop.classList.remove('visible');
+        }
       });
     });
 
     // Sidebar toggle (mobile)
     els.sidebarToggle.addEventListener('click', () => {
-      els.sidebar.classList.toggle('open');
+      const isOpen = els.sidebar.classList.toggle('open');
+      els.sidebarBackdrop.classList.toggle('visible', isOpen);
+    });
+    els.sidebarBackdrop.addEventListener('click', () => {
+      els.sidebar.classList.remove('open');
+      els.sidebarBackdrop.classList.remove('visible');
     });
 
     // Bulk toggle
