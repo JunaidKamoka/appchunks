@@ -528,12 +528,16 @@
       const platformTag = `<span class="app-tag">${platformLabel(app.platform || state.platform)}</span>`;
       const catTag = `<span class="app-tag">${escHtml(app.category || 'App')}</span>`;
 
+      const revenue = API.estimateAppRevenue(app, app.platform || state.platform);
+
       const iconHtml = app.icon
         ? `<img class="app-icon" src="${escHtml(app.icon)}" alt="${escHtml(app.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         : '';
       const placeholderHtml = `<div class="app-icon-placeholder" ${app.icon ? 'style="display:none"' : ''}>
         ${appEmoji(app.category)}
       </div>`;
+
+      const revModelIcon = revenue.revenueModel === 'paid' ? '💎' : revenue.revenueModel === 'freemium' ? '🔓' : '📢';
 
       return `
       <div class="app-row" data-appidx="${idx}">
@@ -546,6 +550,11 @@
           <div class="app-tags">
             ${platformTag}${catTag}${iapTag}
           </div>
+        </div>
+        <div class="app-revenue">
+          <div class="app-revenue-val">${API.formatRevenue(revenue.monthlyRevenue)}<span class="app-revenue-period">/mo</span></div>
+          <div class="app-revenue-downloads">${API.formatNumber(revenue.monthlyDownloads)} downloads/mo</div>
+          <div class="app-revenue-model">${revModelIcon} ${revenue.revenueModel}</div>
         </div>
         <div class="app-stats">
           <div class="app-rating">
@@ -580,6 +589,7 @@
     const minOS    = app.minOS || '—';
     const updated  = app.updateDate ? app.updateDate.slice(0, 10) : '—';
     const desc     = app.description || 'No description available.';
+    const revenue  = API.estimateAppRevenue(app, app.platform || state.platform);
 
     const iconHtml = app.icon
       ? `<img class="modal-app-icon" src="${escHtml(app.icon)}" alt="${escHtml(app.name)}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
@@ -635,6 +645,30 @@
         <div class="modal-stat">
           <div class="modal-stat-label">In-App Purch.</div>
           <div class="modal-stat-val ${app.hasIAP ? 'text-blue' : 'text-muted'}">${app.hasIAP ? 'Yes' : 'No'}</div>
+        </div>
+      </div>
+
+      <div class="modal-section-title">Estimated Revenue</div>
+      <div class="modal-revenue-grid">
+        <div class="modal-revenue-card">
+          <div class="modal-revenue-label">Monthly Revenue</div>
+          <div class="modal-revenue-val text-green">${API.formatRevenue(revenue.monthlyRevenue)}</div>
+        </div>
+        <div class="modal-revenue-card">
+          <div class="modal-revenue-label">Annual Revenue</div>
+          <div class="modal-revenue-val text-green">${API.formatRevenue(revenue.annualRevenue)}</div>
+        </div>
+        <div class="modal-revenue-card">
+          <div class="modal-revenue-label">Daily Downloads</div>
+          <div class="modal-revenue-val">${API.formatNumber(revenue.dailyDownloads)}</div>
+        </div>
+        <div class="modal-revenue-card">
+          <div class="modal-revenue-label">Monthly Downloads</div>
+          <div class="modal-revenue-val">${API.formatNumber(revenue.monthlyDownloads)}</div>
+        </div>
+        <div class="modal-revenue-card">
+          <div class="modal-revenue-label">Revenue Model</div>
+          <div class="modal-revenue-val" style="text-transform:capitalize">${revenue.revenueModel}</div>
         </div>
       </div>
 
@@ -973,8 +1007,11 @@
       ...related.map(r => [r.keyword, r.volume, r.difficulty, r.chance, r.trend]),
       [],
       ['=== TOP APPS ==='],
-      ['Rank', 'Name', 'Developer', 'Category', 'Rating', 'Reviews', 'Price', 'Has IAP', 'Version'],
-      ...apps.map(a => [a.rank, a.name, a.developer, a.category, a.rating, a.ratingCount, a.isFree ? 'Free' : `$${a.price}`, a.hasIAP ? 'Yes' : 'No', a.version]),
+      ['Rank', 'Name', 'Developer', 'Category', 'Rating', 'Reviews', 'Price', 'Has IAP', 'Version', 'Est. Monthly Revenue', 'Est. Monthly Downloads', 'Revenue Model'],
+      ...apps.map(a => {
+        const rev = API.estimateAppRevenue(a, a.platform || state.platform);
+        return [a.rank, a.name, a.developer, a.category, a.rating, a.ratingCount, a.isFree ? 'Free' : `$${a.price}`, a.hasIAP ? 'Yes' : 'No', a.version, `$${rev.monthlyRevenue}`, rev.monthlyDownloads, rev.revenueModel];
+      }),
     ];
 
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');

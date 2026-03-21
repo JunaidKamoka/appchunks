@@ -694,6 +694,74 @@ img { display: block; max-width: 100%; }
 }
 .app-price.free-price { background: var(--green-light); color: var(--green); }
 
+/* Revenue column in app row */
+.app-revenue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+  min-width: 110px;
+}
+.app-revenue-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.app-revenue-period {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 1px;
+}
+.app-revenue-downloads {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.app-revenue-model {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-active);
+  text-transform: capitalize;
+}
+
+/* Revenue grid in app modal */
+.modal-revenue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.modal-revenue-card {
+  background: var(--bg-active);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.modal-revenue-card:hover {
+  border-color: var(--green);
+  transform: translateY(-2px);
+}
+.modal-revenue-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.modal-revenue-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ══════════════════════════════════════════
    EMPTY STATE
 ══════════════════════════════════════════ */
@@ -1719,6 +1787,7 @@ html { overflow-x: hidden; }
   /* ── App rows ── */
   .app-row   { flex-wrap: wrap; padding: 11px 12px; gap: 8px; }
   .app-stats { flex-direction: row; align-items: center; gap: 8px; }
+  .app-revenue { align-items: flex-start; min-width: auto; flex-basis: 100%; flex-direction: row; gap: 10px; padding: 6px 0 0; border-top: 1px solid var(--border); }
   .app-rank  { min-width: 22px; }
 
   /* ── Trending ── */
