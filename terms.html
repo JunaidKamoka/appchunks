@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Terms & Conditions — AppChunks</title>
+  <meta name="description" content="AppChunks Terms & Conditions — Rules governing the use of our apps, services, subscriptions, and in-app purchases on iOS and Android."/>
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1702155776302125" crossorigin="anonymous"></script>
+<style>
+:root{
+  --bg:#000000;--bg2:#090909;--bg3:#111111;
+  --surface:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+  --text:#ffffff;--text2:#909090;--text3:#505050;
+  --accent:#ffffff;--accent2:#cccccc;
+  --green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;
+  --grad:linear-gradient(135deg,#ffffff,#aaaaaa);
+  --r:12px;--r2:20px;--font:'Inter',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.7;font-size:16px}
+a{color:var(--text2);text-decoration:none}
+a:hover{color:var(--text);text-decoration:underline}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+nav{
+  position:sticky;top:0;z-index:100;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 max(24px,calc((100vw - 1200px)/2));
+  background:rgba(0,0,0,0.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:800;color:var(--text)}
+.nav-logo-icon{width:32px;height:32px;border-radius:8px;overflow:hidden;flex-shrink:0}
+.nav-logo-icon img{width:100%;height:100%;display:block}
+.nav-logo span{color:#ffffff}
+.nav-links{display:flex;gap:8px}
+.nav-links a{padding:7px 14px;border-radius:8px;font-size:0.85rem;font-weight:500;color:var(--text2);transition:all 0.2s}
+.nav-links a:hover{color:var(--text);background:var(--surface);text-decoration:none}
+.nav-links a.active{color:#ffffff}
+
+.page-hero{
+  padding:72px max(24px,calc((100vw - 1200px)/2)) 48px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,transparent 60%);
+  border-bottom:1px solid var(--border);position:relative;overflow:hidden;
+}
+.page-hero::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.05),transparent 70%);pointer-events:none}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text3);margin-bottom:20px}
+.breadcrumb a{color:var(--text3);transition:color 0.2s}
+.breadcrumb a:hover{color:var(--text);text-decoration:none}
+.page-tag{display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text2);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);padding:4px 12px;border-radius:20px;margin-bottom:16px}
+.page-title{font-size:clamp(2rem,4vw,3rem);font-weight:800;letter-spacing:-0.04em;margin-bottom:12px}
+.page-meta{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px}
+.meta-item{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px}
+.meta-dot{width:8px;height:8px;border-radius:50%}
+.meta-dot.purple{background:var(--accent2)}
+.meta-dot.blue{background:var(--blue)}
+
+.layout{display:grid;grid-template-columns:260px 1fr;gap:40px;max-width:1200px;margin:0 auto;padding:48px max(24px,calc((100vw - 1200px)/2));align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.toc{display:none}}
+
+.toc{position:sticky;top:80px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:24px}
+.toc-title{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:16px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:2px}
+.toc-list a{display:block;padding:6px 10px;border-radius:8px;font-size:0.82rem;color:var(--text2);transition:all 0.2s}
+.toc-list a:hover{color:var(--text);background:rgba(255,255,255,0.06);text-decoration:none}
+.toc-list a.active{color:var(--text);background:rgba(255,255,255,0.08)}
+
+.content{max-width:800px}
+.policy-section{margin-bottom:56px;scroll-margin-top:90px}
+.section-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:#ffffff;color:#000000;font-size:0.72rem;font-weight:800;margin-bottom:14px}
+.section-title-main{font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px}
+.section-subtitle{font-size:0.85rem;color:var(--text3);margin-bottom:24px;font-style:italic}
+.policy-text{font-size:0.9rem;color:var(--text2);line-height:1.85;margin-bottom:16px}
+.policy-text strong{color:var(--text);font-weight:600}
+.policy-list{color:var(--text2);font-size:0.875rem;padding-left:22px;line-height:2;margin-bottom:16px}
+.policy-list li{margin-bottom:4px}
+
+.callout{border-radius:var(--r);padding:20px 20px 20px 56px;margin:20px 0;position:relative;font-size:0.875rem;line-height:1.7}
+.callout::before{content:attr(data-icon);position:absolute;left:18px;top:18px;font-size:1.1rem}
+.callout.info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93c5fd}
+.callout.warn{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:#fcd34d}
+.callout.success{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);color:#86efac}
+.callout.danger{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#fca5a5}
+.callout.purple{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:var(--text2)}
+
+.data-table-wrap{overflow-x:auto;margin:20px 0;border-radius:var(--r);border:1px solid var(--border)}
+.data-table{width:100%;border-collapse:collapse;font-size:0.83rem}
+.data-table th{background:var(--bg3);padding:10px 14px;text-align:left;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+.data-table td{padding:12px 14px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--surface)}
+
+.platform-tag{display:inline-flex;align-items:center;gap:5px;font-size:0.7rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-right:6px}
+.platform-ios{background:rgba(255,255,255,0.08);color:var(--text)}
+.platform-android{background:rgba(34,197,94,0.12);color:var(--green)}
+.platform-both{background:rgba(255,255,255,0.08);color:var(--text2)}
+
+.rule-list{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.rule-item{display:flex;gap:14px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.rule-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem}
+.rule-icon.red{background:rgba(239,68,68,0.12)}
+.rule-icon.green{background:rgba(34,197,94,0.12)}
+.rule-icon.yellow{background:rgba(245,158,11,0.12)}
+.rule-title{font-size:0.85rem;font-weight:600;margin-bottom:3px}
+.rule-desc{font-size:0.8rem;color:var(--text2);line-height:1.6}
+
+.iap-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:28px;margin:16px 0}
+.iap-card-title{font-size:1rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.iap-card-sub{font-size:0.78rem;color:var(--text3);margin-bottom:16px}
+
+.section-divider{height:1px;background:var(--border);margin:48px 0}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:32px max(24px,calc((100vw - 1200px)/2));display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-copy{font-size:0.8rem;color:var(--text3)}
+.footer-legal{display:flex;gap:20px}
+.footer-legal a{font-size:0.8rem;color:var(--text3);transition:color 0.2s}
+.footer-legal a:hover{color:var(--accent);text-decoration:none}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s,transform 0.6s}
+.reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon"><img src="/images/logo.png" alt="AppChunks"/></div>
+    <span>AppChunks</span>
+  </a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html" class="active">Terms</a>
+    <a href="/contact.html">Contact</a>
+    <a href="/keywords/">ASO Tool</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="breadcrumb">
+    <a href="/">Home</a><span style="margin:0 4px;color:var(--text3)">/</span>
+    <span>Terms & Conditions</span>
+  </div>
+  <div class="page-tag">📄 Legal Document</div>
+  <h1 class="page-title">Terms & Conditions</h1>
+  <p style="color:var(--text2);font-size:1rem;max-width:640px">
+    These terms govern your use of all AppChunks apps and services. They incorporate App Store and Google Play policies, subscription terms, in-app purchase rules, and your rights as a user. Please read them carefully.
+  </p>
+  <div class="page-meta">
+    <div class="meta-item"><div class="meta-dot purple"></div> Effective: January 1, 2025</div>
+    <div class="meta-item"><div class="meta-dot blue"></div> Last Updated: March 2025</div>
+    <div class="meta-item">📱 iOS · Android · macOS · Web</div>
+    <div class="meta-item">⚖️ Binding legal agreement</div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <aside class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <ul class="toc-list">
+      <li><a href="#t1">1. Acceptance of Terms</a></li>
+      <li><a href="#t2">2. Definitions</a></li>
+      <li><a href="#t3">3. App Store Terms (iOS/macOS)</a></li>
+      <li><a href="#t4">4. Google Play Terms (Android)</a></li>
+      <li><a href="#t5">5. Licence to Use Our Apps</a></li>
+      <li><a href="#t6">6. User Accounts</a></li>
+      <li><a href="#t7">7. In-App Purchases & Subscriptions</a></li>
+      <li><a href="#t8">8. Refund Policy</a></li>
+      <li><a href="#t9">9. Free Tier & Advertising</a></li>
+      <li><a href="#t10">10. Acceptable Use Policy</a></li>
+      <li><a href="#t11">11. User-Generated Content</a></li>
+      <li><a href="#t12">12. Intellectual Property</a></li>
+      <li><a href="#t13">13. Third-Party Services</a></li>
+      <li><a href="#t14">14. App Updates & Changes</a></li>
+      <li><a href="#t15">15. Disclaimer of Warranties</a></li>
+      <li><a href="#t16">16. Limitation of Liability</a></li>
+      <li><a href="#t17">17. Indemnification</a></li>
+      <li><a href="#t18">18. Termination</a></li>
+      <li><a href="#t19">19. Governing Law & Disputes</a></li>
+      <li><a href="#t20">20. Contact</a></li>
+    </ul>
+  </aside>
+
+  <div class="content">
+
+    <!-- 1 -->
+    <div class="policy-section reveal" id="t1">
+      <div class="section-num">1</div>
+      <h2 class="section-title-main">Acceptance of Terms</h2>
+      <p class="policy-text">
+        By downloading, installing, accessing, or using any application, tool, or service provided by <strong>AppChunks (Pvt) Ltd.</strong> ("AppChunks", "we", "us", "our"), you agree to be legally bound by these Terms and Conditions ("Terms"). If you do not agree, do not use our Services.
+      </p>
+      <p class="policy-text">
+        These Terms apply to all AppChunks mobile apps on the Apple App Store and Google Play Store, our website at <a href="https://appchunks.com">appchunks.com</a>, the ASO Keyword Research Tool at <a href="/keywords/">appchunks.com/keywords</a>, and any other products or services we offer.
+      </p>
+      <div class="callout warn" data-icon="⚠️">
+        <strong>These Terms include an arbitration clause (Section 19) and a class action waiver.</strong> By using our Services, you agree to resolve disputes through binding individual arbitration rather than class action lawsuits or jury trials, to the extent permitted by applicable law.
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 2 -->
+    <div class="policy-section reveal" id="t2">
+      <div class="section-num">2</div>
+      <h2 class="section-title-main">Definitions</h2>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><strong>"Services"</strong></td><td>All AppChunks apps, websites, tools, and related services</td></tr>
+            <tr><td><strong>"App"</strong></td><td>Any mobile or desktop application published by AppChunks on the App Store or Google Play</td></tr>
+            <tr><td><strong>"User" / "You"</strong></td><td>Any individual or entity accessing or using our Services</td></tr>
+            <tr><td><strong>"Content"</strong></td><td>Text, images, data, software, and other material within the Services</td></tr>
+            <tr><td><strong>"IAP"</strong></td><td>In-App Purchase — digital goods or features purchased within an App</td></tr>
+            <tr><td><strong>"Subscription"</strong></td><td>An auto-renewing IAP that provides access to premium features on a recurring basis</td></tr>
+            <tr><td><strong>"Apple" / "App Store"</strong></td><td>Apple Inc. and its iOS, iPadOS, and macOS App Store platform</td></tr>
+            <tr><td><strong>"Google" / "Play Store"</strong></td><td>Google LLC and its Android Google Play Store platform</td></tr>
+            <tr><td><strong>"EULA"</strong></td><td>End User Licence Agreement — this document or any app-specific licence agreement</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 3 -->
+    <div class="policy-section reveal" id="t3">
+      <div class="section-num">3</div>
+      <h2 class="section-title-main">Apple App Store Terms (iOS / iPadOS / macOS)</h2>
+      <p class="section-subtitle">These terms incorporate and are supplementary to Apple's standard EULA and App Store Review Guidelines.</p>
+
+      <div class="callout purple" data-icon="🍎">
+        <strong>Apple's Role:</strong> AppChunks, not Apple, is solely responsible for our Apps and their content. Apple has no obligation to provide maintenance or support for our Apps. Apple is a third-party beneficiary of these Terms for App Store apps, and Apple has the right to enforce these Terms against you as a third-party beneficiary.
+      </div>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Scope of Licence</h3>
+      <p class="policy-text">The licence we grant you for any App Store app is limited to a <strong>non-transferable, non-exclusive licence</strong> to use the App on any Apple-branded device that you own or control, as permitted by the App Store Usage Rules in Apple's Terms of Service. You may not distribute or make the App available over a network where it could be used by multiple devices at the same time (except as permitted by Apple's "Family Sharing" feature).</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Maintenance & Support</h3>
+      <p class="policy-text">AppChunks provides reasonable maintenance and support for our Apps. <strong>Apple has no obligation whatsoever to furnish any maintenance or support services with respect to our Apps.</strong> For support, contact us at <a href="mailto:contact@appchunks.com">contact@appchunks.com</a>.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Warranty</h3>
+      <p class="policy-text">If an App fails to conform to any applicable warranty, you may notify Apple and Apple will refund the App purchase price. To the maximum extent permitted by law, <strong>Apple has no other warranty obligation with respect to our Apps</strong>. Any other claims, losses, liabilities, damages, costs, or expenses attributable to any failure to conform to warranty are AppChunks' sole responsibility.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Product Claims</h3>
+      <p class="policy-text">AppChunks, not Apple, is responsible for addressing any claims by you or any third party relating to our Apps or your use of them, including: (i) product liability claims; (ii) any claim that an App fails to conform to any applicable legal or regulatory requirement; and (iii) claims arising under consumer protection, privacy, or similar legislation.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Intellectual Property Rights</h3>
+      <p class="policy-text">AppChunks, not Apple, is responsible for any third-party intellectual property infringement claims relating to our Apps and your possession or use of them.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">App Store Review Guidelines Compliance</h3>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Guideline Area</th><th>Our Commitment</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Safety (1.x)</strong></td><td>No objectionable content. No apps that encourage dangerous behaviour. Age ratings accurately set in App Store Connect.</td></tr>
+            <tr><td><strong>Performance (2.x)</strong></td><td>Apps work as advertised, match screenshots, and don't crash. No placeholder content at launch.</td></tr>
+            <tr><td><strong>Business (3.x)</strong></td><td>All IAPs use Apple's StoreKit. No directing users to external payment systems for digital goods. Subscription terms clearly disclosed before purchase.</td></tr>
+            <tr><td><strong>Design (4.x)</strong></td><td>Follows Apple HIG. No spam or copycat apps. Sign in with Apple offered where applicable.</td></tr>
+            <tr><td><strong>Legal (5.x)</strong></td><td>No illegal content. GDPR/CCPA compliant. Privacy policy linked. ATT implemented. HealthKit rules followed.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info" data-icon="📦">
+        <strong>Family Sharing:</strong> Where our Apps support Apple Family Sharing, in-app purchases may be shared with up to 5 family members. Subscription family sharing is noted in individual app listings. Not all purchases or apps support Family Sharing.
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 4 -->
+    <div class="policy-section reveal" id="t4">
+      <div class="section-num">4</div>
+      <h2 class="section-title-main">Google Play Store Terms (Android)</h2>
+      <p class="section-subtitle">These terms are supplementary to Google's Play Developer Distribution Agreement and Google Play Policies.</p>
+
+      <div class="callout success" data-icon="🤖">
+        <strong>Google's Role:</strong> Google is not a party to these Terms and bears no responsibility or liability for our Apps. Google Play is the distribution platform; AppChunks is solely responsible for the App, its content, and its compliance with applicable laws.
+      </div>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Scope of Licence</h3>
+      <p class="policy-text">For Apps downloaded via Google Play, we grant you a <strong>non-exclusive, non-transferable, revocable licence</strong> to use the App on Android devices you own or control. You may use the App solely for personal, non-commercial purposes unless separately agreed in writing.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Google Play Billing</h3>
+      <p class="policy-text">All in-app purchases and subscriptions on Android are processed through <strong>Google Play Billing</strong>. You agree to Google Play's Terms of Service regarding billing, which govern payment, refunds, and subscription management. AppChunks cannot override Google Play's billing decisions.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Google Play Policy Compliance</h3>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Policy Area</th><th>Our Commitment</th></tr></thead>
+          <tbody>
+            <tr><td><strong>User Data Policy</strong></td><td>Prominent disclosure before sensitive data collection. Data Safety section accurate and complete. No secret collection.</td></tr>
+            <tr><td><strong>Permissions Policy</strong></td><td>Only permissions needed for core features. Runtime context provided for all sensitive permissions. No unused permission declarations.</td></tr>
+            <tr><td><strong>Families Policy</strong></td><td>Apps targeting children comply with Families Policy. Approved ad SDKs only. No interest-based advertising to children.</td></tr>
+            <tr><td><strong>Financial Services</strong></td><td>No deceptive billing. Subscription terms shown clearly before purchase. No dark patterns in purchase flows.</td></tr>
+            <tr><td><strong>Deceptive Behaviour</strong></td><td>Apps do what they claim. No hidden functionality. Accurate metadata and screenshots.</td></tr>
+            <tr><td><strong>Malware Policy</strong></td><td>No malware, spyware, or code that harms devices or users. Regular security audits.</td></tr>
+            <tr><td><strong>Account Deletion (Dec 2023)</strong></td><td>In-app account deletion available. Users can delete account and data without emailing us (though email option also available).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 5 -->
+    <div class="policy-section reveal" id="t5">
+      <div class="section-num">5</div>
+      <h2 class="section-title-main">Licence to Use Our Apps</h2>
+      <p class="policy-text">Subject to your compliance with these Terms, AppChunks grants you a <strong>limited, non-exclusive, non-transferable, revocable, personal licence</strong> to download, install, and use our Apps on devices you own or control, solely for your personal, non-commercial purposes.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">You may NOT:</h3>
+      <div class="rule-list">
+        <div class="rule-item">
+          <div class="rule-icon red">🚫</div>
+          <div>
+            <div class="rule-title">Copy or Redistribute</div>
+            <div class="rule-desc">Copy, modify, distribute, sell, rent, lease, sublicense, or transfer any portion of the App or its source code to any third party.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">🔧</div>
+          <div>
+            <div class="rule-title">Reverse Engineer</div>
+            <div class="rule-desc">Decompile, disassemble, reverse engineer, or attempt to derive the source code of any App, except where expressly permitted by applicable law.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">🤖</div>
+          <div>
+            <div class="rule-title">Automate or Scrape</div>
+            <div class="rule-desc">Use robots, scrapers, bots, or automated tools to access, scrape, or extract data from our Apps or Services without express written permission.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">🔒</div>
+          <div>
+            <div class="rule-title">Circumvent Security</div>
+            <div class="rule-desc">Bypass, disable, or circumvent any security, encryption, authentication, or access-control measure in our Apps.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">💰</div>
+          <div>
+            <div class="rule-title">Exploit for Commercial Gain</div>
+            <div class="rule-desc">Use our Apps or Services to provide services to third parties on a commercial basis without AppChunks' written consent.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 6 -->
+    <div class="policy-section reveal" id="t6">
+      <div class="section-num">6</div>
+      <h2 class="section-title-main">User Accounts</h2>
+      <p class="policy-text">Some Services require you to create an account. When creating an account, you agree to:</p>
+      <ul class="policy-list">
+        <li>Provide accurate, current, and complete information</li>
+        <li>Keep your account credentials confidential and not share them with others</li>
+        <li>Notify us immediately of any unauthorized use of your account at <a href="mailto:contact@appchunks.com">contact@appchunks.com</a></li>
+        <li>Be responsible for all activity that occurs under your account</li>
+        <li>Not create accounts using false identities or on behalf of others without authorization</li>
+        <li>Not create multiple accounts to abuse free trials or promotions</li>
+      </ul>
+      <div class="callout info" data-icon="🗑️">
+        <strong>Account Deletion:</strong> You can delete your account at any time from the app's Settings screen or by emailing <a href="mailto:privacy@appchunks.com" style="color:inherit">privacy@appchunks.com</a>. Upon deletion, your personal data will be erased within 30 days, subject to legal retention obligations. This meets both Apple App Store and Google Play's account deletion requirements.
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 7 -->
+    <div class="policy-section reveal" id="t7">
+      <div class="section-num">7</div>
+      <h2 class="section-title-main">In-App Purchases & Subscriptions</h2>
+      <p class="section-subtitle">All digital purchases are processed by Apple or Google — not directly by AppChunks.</p>
+
+      <div class="iap-card">
+        <div class="iap-card-title">🍎 <span>iOS / macOS — Apple App Store (StoreKit)</span></div>
+        <div class="iap-card-sub">Governed by Apple's Media Services Terms and Conditions</div>
+        <ul class="policy-list" style="margin:0">
+          <li>All purchases and subscriptions use <strong>Apple's StoreKit framework</strong> exclusively. No external payment systems are used for digital goods.</li>
+          <li><strong>Auto-renewable subscriptions</strong> renew automatically unless cancelled at least <strong>24 hours before</strong> the end of the current billing period.</li>
+          <li>Renewal charges occur within 24 hours of the end of the current period at the confirmed purchase price.</li>
+          <li><strong>Free trials</strong>: unused portions of a free trial are forfeited when an in-app purchase is made.</li>
+          <li>Subscription price may change with <strong>30 days advance notice</strong>. You may cancel before the new price takes effect.</li>
+          <li>Manage or cancel subscriptions: <strong>Settings → [Your Name] → Subscriptions</strong> on iOS/iPadOS, or via Apple's website.</li>
+          <li>Subscription terms and pricing are shown on the purchase screen before any charge is made.</li>
+          <li><strong>Family Sharing</strong>: Some subscriptions may be shared with family group members where noted in the App Store listing.</li>
+        </ul>
+      </div>
+
+      <div class="iap-card" style="margin-top:16px">
+        <div class="iap-card-title">🤖 <span>Android — Google Play Billing</span></div>
+        <div class="iap-card-sub">Governed by Google Play's Terms of Service</div>
+        <ul class="policy-list" style="margin:0">
+          <li>All purchases use <strong>Google Play Billing Library</strong>. We comply fully with Google's Billing Policy and do not use alternative payment systems for in-app digital content.</li>
+          <li>Auto-renewing subscriptions renew automatically. Cancel at least <strong>24 hours before</strong> the renewal date to avoid the next charge.</li>
+          <li>Manage subscriptions via: <strong>Google Play Store → Profile → Payments & subscriptions → Subscriptions</strong>.</li>
+          <li><strong>Price changes</strong>: For increased prices, Google Play will notify you and require your consent before charging. For decreased prices, they apply automatically.</li>
+          <li><strong>Grace period</strong>: If a payment fails, Google Play may offer a grace period during which you retain access while the payment issue is resolved.</li>
+          <li><strong>Account hold</strong>: If you don't resolve a payment failure, your subscription enters account hold and you lose access to premium features until resolved.</li>
+          <li>All pricing is shown clearly before purchase including applicable taxes.</li>
+        </ul>
+      </div>
+
+      <div class="callout warn" data-icon="⚠️">
+        <strong>Important:</strong> Cancelling a subscription stops future renewals but does not provide a refund for the current billing period. You retain access to premium features until the end of the paid period.
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 8 -->
+    <div class="policy-section reveal" id="t8">
+      <div class="section-num">8</div>
+      <h2 class="section-title-main">Refund Policy</h2>
+      <div class="callout info" data-icon="💡">
+        Refund eligibility is determined by <strong>Apple or Google</strong>, not by AppChunks. AppChunks does not process refunds directly for App Store or Google Play purchases.
+      </div>
+
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Platform</th><th>How to Request a Refund</th><th>Eligibility</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="platform-tag platform-ios">iOS</span><strong>Apple App Store</strong></td>
+              <td>Visit <a href="https://reportaproblem.apple.com" target="_blank" rel="noopener">reportaproblem.apple.com</a> → Sign in → Find the purchase → Report a Problem → "I'd like to request a refund"</td>
+              <td>Apple evaluates refund requests case-by-case. Generally within 14 days of purchase for EU consumers (statutory right). Apple's decision is final.</td>
+            </tr>
+            <tr>
+              <td><span class="platform-tag platform-android">Android</span><strong>Google Play</strong></td>
+              <td>Open Google Play → Profile → Payments & subscriptions → Budget & history → Find the order → Request refund</td>
+              <td>Google offers refunds within 48 hours of purchase for most apps. For subscriptions, refunds for the current period are generally not offered except where required by law.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="policy-text"><strong>EU Consumer Rights:</strong> EU/EEA consumers have a statutory 14-day right of withdrawal from digital purchases, unless the digital content has been delivered and performance has begun with your prior consent and acknowledgment that you lose the right of withdrawal. We will note on purchase screens where this right is waived.</p>
+      <p class="policy-text"><strong>Exceptional Circumstances:</strong> If you believe you have been wrongly charged, please contact us at <a href="mailto:contact@appchunks.com">contact@appchunks.com</a>. While we cannot directly issue refunds, we will assist you with your refund request to Apple or Google.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 9 -->
+    <div class="policy-section reveal" id="t9">
+      <div class="section-num">9</div>
+      <h2 class="section-title-main">Free Tier & Advertising</h2>
+      <p class="policy-text">Many AppChunks apps offer a free tier supported by advertising. By using a free app, you agree that:</p>
+      <ul class="policy-list">
+        <li>Ads may be displayed within the app, including banner ads, interstitial ads, and rewarded video ads.</li>
+        <li>Ad content is served by <strong>Google AdMob</strong> and is subject to Google's advertising policies.</li>
+        <li>Personalized ads are only shown with your explicit consent (via ATT prompt on iOS or GDPR consent on EU devices).</li>
+        <li>Non-personalized contextual ads are shown without consent.</li>
+        <li>You will not attempt to block, circumvent, or interfere with ads in a way that violates our Terms or harms our ability to provide free services.</li>
+        <li>A <strong>paid upgrade or subscription</strong> may be available to remove ads — see individual app listings for details.</li>
+      </ul>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 10 -->
+    <div class="policy-section reveal" id="t10">
+      <div class="section-num">10</div>
+      <h2 class="section-title-main">Acceptable Use Policy</h2>
+      <p class="policy-text">You agree to use our Services only for lawful purposes. The following are strictly prohibited:</p>
+
+      <div class="rule-list">
+        <div class="rule-item">
+          <div class="rule-icon red">🚫</div>
+          <div>
+            <div class="rule-title">Illegal Activity</div>
+            <div class="rule-desc">Using our Services to commit, facilitate, or promote any illegal activity, including fraud, harassment, defamation, or violation of intellectual property rights.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">💣</div>
+          <div>
+            <div class="rule-title">Harmful Content</div>
+            <div class="rule-desc">Uploading, sharing, or transmitting malware, viruses, or any code designed to disrupt, damage, or gain unauthorized access to systems.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">📢</div>
+          <div>
+            <div class="rule-title">Spam & Abuse</div>
+            <div class="rule-desc">Sending unsolicited messages, manipulating app ratings/reviews, creating fake accounts, or engaging in any abusive behaviour toward other users or AppChunks staff.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">🔑</div>
+          <div>
+            <div class="rule-title">Unauthorized Access</div>
+            <div class="rule-desc">Attempting to gain unauthorized access to our systems, servers, databases, or other users' accounts. Performing penetration testing without written permission.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon red">🧒</div>
+          <div>
+            <div class="rule-title">Child Safety</div>
+            <div class="rule-desc">Any use of our Services to create, distribute, or access content that exploits or harms minors. Such violations will be reported immediately to relevant authorities.</div>
+          </div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon yellow">⚠️</div>
+          <div>
+            <div class="rule-title">Commercial Use Without Permission</div>
+            <div class="rule-desc">Reselling, sublicensing, or providing our Services to third parties on a commercial basis without a separate written agreement with AppChunks.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="policy-text" style="margin-top:16px">Violation of this policy may result in immediate termination of your account and/or access to our Services, and may be reported to appropriate authorities.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 11 -->
+    <div class="policy-section reveal" id="t11">
+      <div class="section-num">11</div>
+      <h2 class="section-title-main">User-Generated Content</h2>
+      <p class="policy-text">Where our Apps allow you to create, upload, or share content ("User Content"), you retain ownership of your User Content. By submitting User Content, you grant AppChunks a <strong>worldwide, royalty-free, non-exclusive licence</strong> to host, store, display, and deliver that content solely for the purpose of operating and improving the Service.</p>
+      <p class="policy-text">You represent and warrant that:</p>
+      <ul class="policy-list">
+        <li>You own or have the necessary rights to the content you submit</li>
+        <li>Your content does not infringe any third-party copyright, trademark, or privacy rights</li>
+        <li>Your content complies with Apple's and Google's content policies and our Acceptable Use Policy</li>
+        <li>Your content does not contain malware, offensive material, or anything that violates applicable law</li>
+      </ul>
+      <p class="policy-text">AppChunks reserves the right to remove any User Content that violates these Terms, without prior notice.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 12 -->
+    <div class="policy-section reveal" id="t12">
+      <div class="section-num">12</div>
+      <h2 class="section-title-main">Intellectual Property</h2>
+      <p class="policy-text">All intellectual property in our Apps and Services — including but not limited to software code, design, graphics, logos, trademarks, trade names, text, and data compilations — is and remains the exclusive property of <strong>AppChunks (Pvt) Ltd.</strong> or our licensors.</p>
+      <p class="policy-text">Nothing in these Terms transfers any intellectual property rights to you. Your use of our Services does not grant you any rights to use our trademarks, logos, or branding without prior written consent.</p>
+      <div class="callout info" data-icon="©️">
+        <strong>Copyright Infringement (DMCA):</strong> If you believe any content in our Apps infringes your copyright, please notify us at <a href="mailto:contact@appchunks.com" style="color:inherit">contact@appchunks.com</a> with: (1) identification of the copyrighted work; (2) identification of the infringing material; (3) your contact information; (4) a statement of good faith belief; and (5) a statement of accuracy under penalty of perjury. We respond to valid DMCA notices promptly.
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 13 -->
+    <div class="policy-section reveal" id="t13">
+      <div class="section-num">13</div>
+      <h2 class="section-title-main">Third-Party Services & Links</h2>
+      <p class="policy-text">Our Apps may integrate with or link to third-party services, APIs, and websites. These third parties have their own terms of service and privacy policies, which you should review. AppChunks is not responsible for the content, accuracy, or practices of any third-party service. Key third-party services used:</p>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Service</th><th>Purpose</th><th>Their Terms</th></tr></thead>
+          <tbody>
+            <tr><td>Apple (StoreKit, APNs, Sign in with Apple)</td><td>Payments, notifications, authentication</td><td>apple.com/legal</td></tr>
+            <tr><td>Google Play Billing, FCM, Sign in with Google</td><td>Payments, notifications, authentication</td><td>play.google.com/about/play-terms</td></tr>
+            <tr><td>Firebase (Crashlytics, Analytics, Auth)</td><td>Crash reports, analytics, authentication</td><td>firebase.google.com/terms</td></tr>
+            <tr><td>Google AdMob</td><td>In-app advertising</td><td>google.com/intl/en/policies/privacy</td></tr>
+            <tr><td>RevenueCat</td><td>Subscription management</td><td>revenuecat.com/privacy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 14 -->
+    <div class="policy-section reveal" id="t14">
+      <div class="section-num">14</div>
+      <h2 class="section-title-main">App Updates & Changes to Services</h2>
+      <p class="policy-text">AppChunks may, at any time and without prior notice:</p>
+      <ul class="policy-list">
+        <li>Release updates to our Apps through the App Store or Google Play</li>
+        <li>Modify, add, or remove features from our Services</li>
+        <li>Change pricing for new subscriptions (existing subscribers receive notice)</li>
+        <li>Discontinue an App or Service with reasonable notice where possible</li>
+      </ul>
+      <p class="policy-text">We recommend enabling automatic updates to ensure you always have the latest version with security patches and improvements. <strong>We are not liable for any issues arising from your failure to update an App.</strong></p>
+      <div class="callout warn" data-icon="📱">
+        <strong>OS Compatibility:</strong> We support the current and one prior major iOS/Android version. We may discontinue support for older OS versions with 60 days' notice via in-app message or email.
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 15 -->
+    <div class="policy-section reveal" id="t15">
+      <div class="section-num">15</div>
+      <h2 class="section-title-main">Disclaimer of Warranties</h2>
+      <div class="callout danger" data-icon="⚠️">
+        <strong>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:</strong> Our Services are provided "AS IS" and "AS AVAILABLE" without any warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, non-infringement, or course of performance.
+      </div>
+      <p class="policy-text">AppChunks does not warrant that:</p>
+      <ul class="policy-list">
+        <li>The Services will be uninterrupted, error-free, or available at any particular time</li>
+        <li>The results obtained from using the Services will be accurate or reliable</li>
+        <li>Any errors or defects will be corrected</li>
+        <li>The Services are free of viruses or other harmful components</li>
+      </ul>
+      <p class="policy-text">Some jurisdictions do not allow exclusion of implied warranties. If you are a consumer in such a jurisdiction, the above exclusions apply only to the extent permitted by law.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 16 -->
+    <div class="policy-section reveal" id="t16">
+      <div class="section-num">16</div>
+      <h2 class="section-title-main">Limitation of Liability</h2>
+      <div class="callout danger" data-icon="⚖️">
+        <strong>TO THE MAXIMUM EXTENT PERMITTED BY LAW:</strong> AppChunks, its officers, directors, employees, partners, agents, suppliers, and licensors shall not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages, including loss of profits, data, goodwill, or other intangible losses, arising out of or in connection with your use or inability to use the Services — even if advised of the possibility of such damages.
+      </div>
+      <p class="policy-text">Our total aggregate liability to you for all claims relating to the Services shall not exceed the greater of: (a) the amount you paid to AppChunks in the 12 months preceding the claim; or (b) USD $100.</p>
+      <p class="policy-text"><strong>Consumer Rights:</strong> Nothing in these Terms limits or excludes AppChunks' liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, or any other liability that cannot be excluded by law. Statutory consumer rights are not affected.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 17 -->
+    <div class="policy-section reveal" id="t17">
+      <div class="section-num">17</div>
+      <h2 class="section-title-main">Indemnification</h2>
+      <p class="policy-text">You agree to defend, indemnify, and hold harmless AppChunks and its officers, directors, employees, and agents from and against any claims, damages, obligations, losses, liabilities, costs, or debt arising from:</p>
+      <ul class="policy-list">
+        <li>Your use of and access to the Services in violation of these Terms</li>
+        <li>Your violation of any third-party right, including intellectual property, privacy, or publicity rights</li>
+        <li>Any User Content you submit that causes damage to a third party</li>
+        <li>Your violation of any applicable law or regulation</li>
+      </ul>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 18 -->
+    <div class="policy-section reveal" id="t18">
+      <div class="section-num">18</div>
+      <h2 class="section-title-main">Termination</h2>
+      <p class="policy-text">AppChunks may suspend or terminate your access to any Service immediately, without prior notice or liability, for any reason — including if you breach these Terms.</p>
+      <p class="policy-text">Upon termination:</p>
+      <ul class="policy-list">
+        <li>Your right to use the Service immediately ceases</li>
+        <li>Active subscriptions are cancelled (no refund for current period, per Apple/Google policy)</li>
+        <li>Your account and data are handled per our Privacy Policy and Data Retention schedule</li>
+      </ul>
+      <p class="policy-text">You may terminate your use at any time by deleting the App and your account. Sections 12, 15, 16, 17, and 19 survive termination.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 19 -->
+    <div class="policy-section reveal" id="t19">
+      <div class="section-num">19</div>
+      <h2 class="section-title-main">Governing Law & Dispute Resolution</h2>
+      <p class="policy-text">These Terms are governed by the laws of the jurisdiction in which AppChunks (Pvt) Ltd. is registered, without regard to conflict of law principles.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Binding Arbitration</h3>
+      <p class="policy-text">Any dispute, claim, or controversy arising out of or relating to these Terms or the Services shall be resolved by <strong>binding individual arbitration</strong> administered under the rules of a recognized arbitration body, rather than in a court of law. <strong>You waive your right to participate in a class action lawsuit or class-wide arbitration.</strong></p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Exceptions to Arbitration</h3>
+      <p class="policy-text">Either party may seek emergency injunctive or other equitable relief in a court of competent jurisdiction to prevent irreparable harm pending arbitration. Claims small enough for small claims court may be brought there.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">EU/UK Users</h3>
+      <p class="policy-text">If you are an EU or UK consumer, you retain your right to bring claims in the courts of your country of residence, and benefit from any mandatory consumer protection laws that cannot be excluded by contract. EU users may also use the EU Online Dispute Resolution platform: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">ec.europa.eu/consumers/odr</a>.</p>
+
+      <h3 style="font-size:1rem;font-weight:700;margin:20px 0 12px">Informal Resolution First</h3>
+      <p class="policy-text">Before filing any formal dispute, you agree to contact us at <a href="mailto:contact@appchunks.com">contact@appchunks.com</a> and attempt to resolve the dispute informally for at least 30 days.</p>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 20 -->
+    <div class="policy-section reveal" id="t20">
+      <div class="section-num">20</div>
+      <h2 class="section-title-main">Contact</h2>
+      <p class="policy-text">For any questions about these Terms or our Services:</p>
+      <div class="callout info" data-icon="📬">
+        <strong>AppChunks (Pvt) Ltd.</strong><br>
+        General Enquiries: <a href="mailto:contact@appchunks.com" style="color:inherit">contact@appchunks.com</a><br>
+        Legal / Privacy: <a href="mailto:privacy@appchunks.com" style="color:inherit">privacy@appchunks.com</a><br>
+        Website: <a href="https://appchunks.com" style="color:inherit">appchunks.com</a><br>
+        Contact page: <a href="/contact.html" style="color:inherit">appchunks.com/contact</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <p class="footer-copy">&copy; 2025 AppChunks (Pvt) Ltd. All rights reserved.</p>
+  <div class="footer-legal">
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms & Conditions</a>
+    <a href="/contact.html">Contact</a>
+    <a href="/">Home</a>
+  </div>
+</footer>
+
+<script>
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      e.target.classList.add('in');
+      document.querySelectorAll('.toc-list a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id);
+      });
+    }
+  });
+}, {threshold:0.15, rootMargin:'0px 0px -20% 0px'});
+document.querySelectorAll('.policy-section, .reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
