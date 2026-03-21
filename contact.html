@@ -342,7 +342,7 @@ footer{
       <div class="cc-label">Email Us</div>
       <div class="cc-title">General Enquiries</div>
       <div class="cc-desc">For project quotes, partnerships, and general questions about our services.</div>
-      <a href="mailto:contact@appchunks.com" class="cc-link">contact@appchunks.com →</a>
+      <a href="mailto:appchunks@gmail.com" class="cc-link">appchunks@gmail.com →</a>
     </div>
 
     <div class="contact-card reveal reveal-d1">
@@ -350,7 +350,7 @@ footer{
       <div class="cc-label">Privacy & Legal</div>
       <div class="cc-title">Data & Privacy Requests</div>
       <div class="cc-desc">GDPR requests, data deletion, CCPA, and all privacy-related matters.</div>
-      <a href="mailto:privacy@appchunks.com" class="cc-link">privacy@appchunks.com →</a>
+      <a href="mailto:appchunks@gmail.com" class="cc-link">appchunks@gmail.com →</a>
     </div>
 
     <div class="contact-card reveal reveal-d2">
@@ -358,7 +358,15 @@ footer{
       <div class="cc-label">Support</div>
       <div class="cc-title">App Support</div>
       <div class="cc-desc">Having issues with one of our apps? We'll help you resolve it fast.</div>
-      <a href="mailto:support@appchunks.com" class="cc-link">support@appchunks.com →</a>
+      <a href="mailto:appchunks@gmail.com" class="cc-link">appchunks@gmail.com →</a>
+    </div>
+
+    <div class="contact-card reveal reveal-d3">
+      <div class="cc-icon indigo">📞</div>
+      <div class="cc-label">Call / WhatsApp</div>
+      <div class="cc-title">Phone & WhatsApp</div>
+      <div class="cc-desc">Reach us directly for urgent project discussions or quick questions.</div>
+      <a href="tel:+923430444496" class="cc-link">+92 343 044 4496 →</a>
     </div>
 
     <div class="contact-card reveal reveal-d3">
@@ -632,7 +640,7 @@ footer{
         How do I request data deletion or exercise privacy rights?
         <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="faq-a">Email <a href="mailto:privacy@appchunks.com">privacy@appchunks.com</a> with subject "Data Deletion Request" or your specific GDPR/CCPA right. We respond within 30 days. For apps: delete your account in-app (Settings → Delete Account) for immediate data deletion. See our full <a href="/privacy.html">Privacy Policy</a>.</div>
+      <div class="faq-a">Email <a href="mailto:appchunks@gmail.com">appchunks@gmail.com</a> with subject "Data Deletion Request" or your specific GDPR/CCPA right. We respond within 30 days. For apps: delete your account in-app (Settings → Delete Account) for immediate data deletion. See our full <a href="/privacy.html">Privacy Policy</a>.</div>
     </div>
 
   </div>
@@ -730,7 +738,7 @@ form.addEventListener('submit', e => {
   ].join('%0A');
 
   const subject = encodeURIComponent(`Project Inquiry from ${name} — ${services || 'AppChunks'}`);
-  window.location.href = `mailto:contact@appchunks.com?subject=${subject}&body=${body}`;
+  window.location.href = `mailto:appchunks@gmail.com?subject=${subject}&body=${body}`;
 
   form.style.display = 'none';
   success.style.display = 'flex';

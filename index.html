@@ -1002,10 +1002,19 @@ body::before{
         </div>
         <div>
           <div class="contact-item-label">Email</div>
-          <div class="contact-item-val">contact@appchunks.com</div>
+          <div class="contact-item-val"><a href="mailto:appchunks@gmail.com" style="color:inherit">appchunks@gmail.com</a></div>
         </div>
       </div>
       <div class="contact-item reveal reveal-delay-1">
+        <div class="contact-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .9h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.67a16 16 0 006.29 6.29l1.08-1.08a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="contact-item-label">Phone / WhatsApp</div>
+          <div class="contact-item-val"><a href="tel:+923430444496" style="color:inherit">+92 343 044 4496</a></div>
+        </div>
+      </div>
+      <div class="contact-item reveal reveal-delay-2">
         <div class="contact-item-icon">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
         </div>
@@ -1201,11 +1210,11 @@ body::before{
     <div class="modal-body">
       <p>At AppChunks, we are committed to protecting your privacy and ensuring the security of your personal data.</p>
       <h2>Requesting Data Deletion</h2>
-      <p>To request deletion of your data, send an email to <a href="mailto:contact@appchunks.com">contact@appchunks.com</a> with the subject line <strong>"Data Deletion Request"</strong>. Please include your username or any relevant information to help us locate your data. We will process your request within the applicable legal timeframe.</p>
+      <p>To request deletion of your data, send an email to <a href="mailto:appchunks@gmail.com">appchunks@gmail.com</a> with the subject line <strong>"Data Deletion Request"</strong>. Please include your username or any relevant information to help us locate your data. We will process your request within the applicable legal timeframe.</p>
       <h2>Automatic Data Deletion</h2>
       <p>AppChunks automatically deletes data for inactive users who have not accessed their accounts for 60 days or more. This ensures only relevant and current data is retained in our systems.</p>
       <h2>Contact Us</h2>
-      <p>For questions about data handling, contact us at <a href="mailto:contact@appchunks.com">contact@appchunks.com</a>. Thank you for trusting AppChunks with your data.</p>
+      <p>For questions about data handling, contact us at <a href="mailto:appchunks@gmail.com">appchunks@gmail.com</a>. Thank you for trusting AppChunks with your data.</p>
     </div>
   </div>
 </div>
@@ -1355,7 +1364,7 @@ function showToast(msg, type='success') {
 form.addEventListener('submit', e => {
   e.preventDefault();
   const data = new FormData(form);
-  const mailto = `mailto:contact@appchunks.com?subject=Project Inquiry from ${data.get('name')}&body=Name: ${data.get('name')}%0AEmail: ${data.get('email')}%0AType: ${data.get('type')}%0ABudget: ${data.get('budget')}%0A%0AMessage:%0A${data.get('message')}`;
+  const mailto = `mailto:appchunks@gmail.com?subject=Project Inquiry from ${data.get('name')}&body=Name: ${data.get('name')}%0AEmail: ${data.get('email')}%0AType: ${data.get('type')}%0ABudget: ${data.get('budget')}%0A%0AMessage:%0A${data.get('message')}`;
   window.location.href = mailto;
   showToast('Opening your email client… ✓', 'success');
   form.reset();
