@@ -169,9 +169,49 @@ img { display: block; max-width: 100%; }
   padding: 6px;
   border-radius: var(--radius-sm);
   transition: all 0.15s;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
 }
 .sidebar-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
 .sidebar-toggle svg { width: 20px; height: 20px; }
+
+/* Hamburger icon CSS (replaces feather icon on mobile) */
+.hamburger-icon {
+  display: none;
+  width: 20px;
+  height: 14px;
+  position: relative;
+  flex-shrink: 0;
+}
+.hamburger-icon span {
+  display: block;
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background: currentColor;
+  border-radius: 2px;
+  left: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hamburger-icon span:nth-child(1) { top: 0; }
+.hamburger-icon span:nth-child(2) { top: 6px; }
+.hamburger-icon span:nth-child(3) { top: 12px; }
+/* Animate to X when sidebar is open */
+body.sidebar-open .hamburger-icon span:nth-child(1) {
+  top: 6px;
+  transform: rotate(45deg);
+}
+body.sidebar-open .hamburger-icon span:nth-child(2) {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+body.sidebar-open .hamburger-icon span:nth-child(3) {
+  top: 6px;
+  transform: rotate(-45deg);
+}
 
 /* PLATFORM SWITCHER */
 .platform-switcher {
@@ -1067,12 +1107,15 @@ main > section { flex: 1; padding: 32px 28px; }
    ANIMATIONS & MICRO-INTERACTIONS
 ══════════════════════════════════════════ */
 
-/* ── SIDEBAR SLIDE IN ── */
+/* ── SIDEBAR SLIDE IN (desktop only) ── */
 @keyframes sidebarSlideIn {
   from { opacity: 0; transform: translateX(-20px); }
   to { opacity: 1; transform: translateX(0); }
 }
-.sidebar { animation: sidebarSlideIn 0.5s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+/* Only animate sidebar entrance on desktop — mobile uses toggle */
+@media (min-width: 901px) {
+  .sidebar { animation: sidebarSlideIn 0.5s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+}
 .sidebar .nav-item {
   opacity: 0;
   animation: sidebarSlideIn 0.4s cubic-bezier(0.25,0.46,0.45,0.94) both;
@@ -1697,13 +1740,20 @@ html, body { -webkit-text-size-adjust: 100%; }
     will-change: transform;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: none;
+    animation: none !important; /* override desktop entrance animation */
   }
   .sidebar.open {
     transform: translateX(0);
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
   }
+  /* Prevent background scroll when sidebar is open */
+  body.sidebar-open {
+    overflow: hidden;
+  }
   .main-content { margin-left: 0; width: 100%; }
   .sidebar-toggle { display: flex; }
+  .sidebar-toggle svg { display: none; }
+  .hamburger-icon { display: block; }
 
   /* Topbar: hide platform label text at tablet */
   .platform-btn span { display: none; }
@@ -1725,8 +1775,7 @@ html, body { -webkit-text-size-adjust: 100%; }
 ══════════════════════════════════════════ */
 @media (max-width: 640px) {
 
-  /* ── Body: prevent background scroll when sidebar/modal open ── */
-  body.sidebar-open,
+  /* ── Body: prevent background scroll when modal open ── */
   body.modal-open {
     overflow: hidden;
     position: fixed;
