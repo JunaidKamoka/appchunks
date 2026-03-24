@@ -292,7 +292,7 @@
 
 <footer class="footer">
   <p>© 2025 <a href="/">AppChunks</a> · For development &amp; testing use only · <a href="/privacy.html">Privacy</a></p>
-  <p style="margin-top:6px;font-size:11px;opacity:.4;font-family:'JetBrains Mono',monospace">commit f3d2b86</p>
+  <p id="commitHash" style="margin-top:6px;font-size:11px;opacity:.4;font-family:'JetBrains Mono',monospace">commit —</p>
 </footer>
 
 <!-- Firebase SDK -->
@@ -714,6 +714,17 @@ function parseBinaryPlist(buffer) {
 
 // ── INIT ──────────────────────────────────────────────────
 feather.replace();
+
+// Fetch latest commit hash from GitHub API
+(async () => {
+  try {
+    const res  = await fetch('https://api.github.com/repos/JunaidKamoka/appchunks/commits/main',
+      { headers: { Accept: 'application/vnd.github.v3+json' } });
+    const data = await res.json();
+    const sha  = data?.sha?.slice(0, 7);
+    if (sha) document.getElementById('commitHash').textContent = `commit ${sha}`;
+  } catch {}
+})();
 </script>
 
 </body>
