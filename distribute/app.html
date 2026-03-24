@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Install App — AppChunks Distribute</title>
+  <meta name="description" content="Install this app directly on your device."/>
+  <!-- OG tags filled dynamically via JS -->
+  <meta property="og:type" content="website"/>
+  <link rel="icon" type="image/x-icon" href="../images/favicon.ico"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    :root{
+      --bg:#000;--bg2:#0d0d0d;--bg3:#161616;--bg4:#1c1c1c;
+      --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+      --text:#fff;--text2:#909090;--text3:#555;
+      --blue:#3b82f6;--blue-light:rgba(59,130,246,0.12);
+      --green:#22c55e;--green-light:rgba(34,197,94,0.12);
+      --red:#ef4444;--red-light:rgba(239,68,68,0.12);
+      --yellow:#f59e0b;--yellow-light:rgba(245,158,11,0.1);
+      --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+      --r:12px;--r-lg:18px;--r-xl:24px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{-webkit-font-smoothing:antialiased}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+    a{color:inherit;text-decoration:none}img{display:block;max-width:100%}
+    button{cursor:pointer;border:none;background:none;font-family:inherit}
+    input{font-family:inherit}
+    ::selection{background:rgba(59,130,246,0.3)}
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+    /* ── NAV ── */
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:64px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:100}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+    .nav-logo img{border-radius:7px}
+    .nav-upload{display:flex;align-items:center;gap:6px;color:var(--text2);font-size:14px;transition:color .2s}
+    .nav-upload:hover{color:var(--text)}
+    .nav-upload svg{width:14px;height:14px}
+
+    /* ── MAIN ── */
+    .main{max-width:520px;margin:0 auto;padding:60px 24px 100px;display:flex;flex-direction:column;align-items:center}
+
+    /* ── STATES ── */
+    .state{display:none;width:100%}
+    .state.active{display:flex;flex-direction:column;align-items:center}
+
+    /* ── LOADING ── */
+    .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.08);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #state-loading{padding:80px 0;gap:16px}
+    #state-loading p{color:var(--text2);font-size:14px}
+
+    /* ── CARD ── */
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-xl);padding:36px;width:100%}
+    .center-card{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+
+    /* ── ERROR ── */
+    .err-icon{width:56px;height:56px;background:var(--red-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--red)}
+    .err-icon svg{width:26px;height:26px}
+    .err-title{font-size:20px;font-weight:700}
+    .err-msg{color:var(--text2);font-size:14px;max-width:300px;text-align:center}
+
+    /* ── PASSWORD ── */
+    .lock-icon{width:64px;height:64px;background:var(--yellow-light);border:1px solid rgba(245,158,11,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--yellow);margin-bottom:4px}
+    .lock-icon svg{width:28px;height:28px}
+    .pw-title{font-size:22px;font-weight:700}
+    .pw-sub{color:var(--text2);font-size:14px}
+    .pw-form{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;margin-top:8px}
+    .pw-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:12px 16px;color:var(--text);font-size:15px;outline:none;text-align:center;letter-spacing:2px;transition:border-color .2s}
+    .pw-input:focus{border-color:var(--yellow)}
+    .pw-submit{width:100%;background:var(--yellow);color:#000;border:none;border-radius:var(--r);padding:13px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s}
+    .pw-submit:hover{opacity:.88}
+    .pw-error{color:var(--red);font-size:13px;min-height:20px}
+
+    /* ── APP CARD ── */
+    .app-header{display:flex;align-items:center;gap:20px;margin-bottom:28px}
+    .app-icon{width:88px;height:88px;border-radius:20px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+    .app-icon-fallback{width:88px;height:88px;border-radius:20px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);flex-shrink:0;border:1px solid var(--border)}
+    .app-icon-fallback svg{width:36px;height:36px}
+    .app-info{min-width:0;flex:1}
+    .app-name{font-size:22px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .app-bundle{color:var(--text2);font-size:12px;font-family:var(--mono);margin:4px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .meta-badges{display:flex;flex-wrap:wrap;gap:6px}
+    .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,0.07);color:var(--text2)}
+    .badge-ios{background:var(--blue-light);color:var(--blue)}
+    .badge-android{background:var(--green-light);color:var(--green)}
+
+    /* ── DIVIDER ── */
+    .divider{border:none;height:1px;background:var(--border);margin:24px 0}
+
+    /* ── INSTALL SECTION ── */
+    .install-section{display:flex;flex-direction:column;gap:14px}
+    .install-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#000;border:none;border-radius:var(--r-lg);padding:16px 24px;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;text-decoration:none;transition:opacity .2s,transform .1s}
+    .install-btn:hover{opacity:.88}
+    .install-btn:active{transform:scale(.99)}
+    .install-btn svg{width:20px;height:20px}
+    .install-btn-android{background:var(--green);color:#000}
+    .install-note{color:var(--text3);font-size:12px;line-height:1.6;text-align:center;padding:0 8px}
+    .desktop-notice{display:none;background:var(--yellow-light);border:1px solid rgba(245,158,11,0.2);border-radius:var(--r);padding:14px 18px;font-size:13px;color:var(--text2);line-height:1.6;text-align:center}
+    .desktop-notice strong{color:var(--yellow)}
+    .desktop-visible{display:block}
+
+    /* ── QR ── */
+    .qr-section{display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--bg3);border-radius:var(--r-lg);padding:28px}
+    .qr-label{color:var(--text2);font-size:13px;text-align:center}
+
+    /* ── FILE META ── */
+    .file-meta{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;padding:4px 0}
+    .meta-item{display:flex;align-items:center;gap:5px;color:var(--text3);font-size:12px}
+    .meta-item svg{width:12px;height:12px}
+
+    /* ── BUTTONS ── */
+    .btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:var(--r);padding:10px 20px;font-family:var(--font);font-size:14px;cursor:pointer;transition:all .2s;text-decoration:none}
+    .btn-outline:hover{border-color:var(--text2);color:var(--text)}
+
+    /* ── EXPIRY BADGE ── */
+    .expiry-badge{display:inline-flex;align-items:center;gap:5px;background:var(--yellow-light);color:var(--yellow);font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px}
+    .expiry-badge svg{width:12px;height:12px}
+
+    /* ── FOOTER ── */
+    .footer{text-align:center;padding:48px 24px;color:var(--text3);font-size:13px;border-top:1px solid var(--border);width:100%}
+    .footer a{color:var(--text2);transition:color .2s}.footer a:hover{color:var(--text)}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:600px){
+      .main{padding:40px 16px 80px}
+      .card{padding:24px}
+      .app-header{gap:14px}
+      .app-icon,.app-icon-fallback{width:72px;height:72px;border-radius:16px}
+      .app-name{font-size:18px}
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="../images/logo.png" alt="AppChunks" width="28" height="28"/>
+    <span>AppChunks</span>
+  </a>
+  <a href="/distribute/" class="nav-upload">
+    <i data-feather="upload"></i>
+    Upload an App
+  </a>
+</nav>
+
+<main class="main">
+
+  <!-- ── LOADING ── -->
+  <div id="state-loading" class="state active">
+    <div class="spinner"></div>
+    <p>Loading app…</p>
+  </div>
+
+  <!-- ── ERROR ── -->
+  <div id="state-error" class="state">
+    <div class="card center-card">
+      <div class="err-icon"><i data-feather="alert-circle"></i></div>
+      <p class="err-title" id="errorTitle">App Not Found</p>
+      <p class="err-msg" id="errorMsg">This link may have expired or been removed.</p>
+      <a href="/distribute/" class="btn-outline" style="margin-top:8px">
+        <i data-feather="upload"></i> Upload Your App
+      </a>
+    </div>
+  </div>
+
+  <!-- ── PASSWORD ── -->
+  <div id="state-password" class="state">
+    <div class="card center-card">
+      <div class="lock-icon"><i data-feather="lock"></i></div>
+      <p class="pw-title">Password Required</p>
+      <p class="pw-sub">This app is password protected.</p>
+      <div class="pw-form">
+        <input type="password" id="pwInput" class="pw-input" placeholder="Enter password" autocomplete="off"/>
+        <button class="pw-submit" id="pwSubmit">Continue</button>
+      </div>
+      <p class="pw-error" id="pwError"></p>
+    </div>
+  </div>
+
+  <!-- ── APP ── -->
+  <div id="state-app" class="state">
+    <div class="card">
+
+      <!-- App header -->
+      <div class="app-header">
+        <img id="appIcon" class="app-icon" src="" alt="" style="display:none"
+             onerror="this.style.display='none';document.getElementById('iconFallback').style.display='flex'"/>
+        <div id="iconFallback" class="app-icon-fallback" style="display:none"><i data-feather="smartphone"></i></div>
+        <div class="app-info">
+          <p class="app-name" id="appName"></p>
+          <p class="app-bundle" id="appBundle"></p>
+          <div class="meta-badges">
+            <span id="versionBadge" class="badge"></span>
+            <span id="platformBadge" class="badge"></span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- Desktop notice (hidden on mobile) -->
+      <div class="desktop-notice" id="desktopNotice">
+        <strong>Open on your iPhone or iPad</strong> — Scan the QR code below or share this link to your device to install.
+      </div>
+
+      <!-- iOS install -->
+      <div id="ios-section" class="install-section" style="display:none">
+        <a id="installBtn" href="#" class="install-btn">
+          <i data-feather="download"></i>
+          Install on iPhone / iPad
+        </a>
+        <p class="install-note">Tap above in <strong>Safari</strong> on your iOS device. The app must be signed with an Ad Hoc or Enterprise certificate.</p>
+      </div>
+
+      <!-- Android install -->
+      <div id="android-section" class="install-section" style="display:none">
+        <a id="downloadBtn" href="#" class="install-btn install-btn-android" download>
+          <i data-feather="download"></i>
+          Download APK
+        </a>
+        <p class="install-note">Download the APK, then enable <strong>Install from unknown sources</strong> in Settings → Security.</p>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- QR Code -->
+      <div class="qr-section">
+        <canvas id="qrCanvas"></canvas>
+        <p class="qr-label">Scan with your device camera to open this page</p>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- File meta -->
+      <div class="file-meta">
+        <span class="meta-item" id="fileSizeMeta" style="display:none">
+          <i data-feather="hard-drive"></i><span></span>
+        </span>
+        <span class="meta-item" id="uploadedMeta" style="display:none">
+          <i data-feather="clock"></i><span></span>
+        </span>
+        <span class="expiry-badge" id="expiryMeta" style="display:none">
+          <i data-feather="calendar"></i><span></span>
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <p>Powered by <a href="/">AppChunks</a> · For development &amp; testing use only</p>
+</footer>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp }                                    from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
+import { getAnalytics }                                     from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js';
+import { getFirestore, doc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+
+// ── Firebase config ───────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDI6MUNw1eRX2Qv7234ZxD0Mj-RI7-77rw",
+  authDomain:        "appchunks-e9226.firebaseapp.com",
+  projectId:         "appchunks-e9226",
+  storageBucket:     "appchunks-e9226.firebasestorage.app",
+  messagingSenderId: "241451997811",
+  appId:             "1:241451997811:web:68b210eec8f608818e2806",
+  measurementId:     "G-CZDFG62ZJE"
+};
+
+const _app = initializeApp(FIREBASE_CONFIG);
+getAnalytics(_app);
+const db   = getFirestore(_app);
+
+// ── STATE ─────────────────────────────────────────────────
+const STATES = ['loading','error','password','app'];
+function showState(name) {
+  STATES.forEach(s => {
+    const el = document.getElementById(`state-${s}`);
+    if (el) el.classList.toggle('active', s === name);
+  });
+  feather.replace();
+}
+
+let appData = null;
+const params = new URLSearchParams(location.search);
+const appId  = params.get('id');
+
+// ── LOAD ──────────────────────────────────────────────────
+async function loadApp() {
+  if (!appId) { return showError('Missing ID', 'No app ID in the URL.'); }
+
+  try {
+    const snap = await getDoc(doc(db, 'apps', appId));
+    if (!snap.exists()) {
+      return showError('App Not Found', 'This link may have expired or been removed.');
+    }
+
+    appData = snap.data();
+
+    // Check expiry
+    if (appData.expiresAt && new Date(appData.expiresAt) < new Date()) {
+      return showError('Link Expired', 'This app link has expired.');
+    }
+
+    if (appData.password) {
+      showState('password');
+      document.getElementById('pwSubmit').addEventListener('click', checkPassword);
+      document.getElementById('pwInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') checkPassword();
+        document.getElementById('pwError').textContent = '';
+      });
+    } else {
+      await renderApp();
+    }
+  } catch (err) {
+    console.error(err);
+    showError('Load Failed', 'Could not load app data. Please try again.');
+  }
+}
+
+function checkPassword() {
+  const entered = document.getElementById('pwInput').value;
+  if (entered === appData.password) {
+    renderApp();
+  } else {
+    document.getElementById('pwError').textContent = 'Incorrect password. Please try again.';
+  }
+}
+
+async function renderApp() {
+  // Update page title & OG
+  document.title = `Install ${appData.appName} — AppChunks Distribute`;
+  setMeta('og:title',       `Install ${appData.appName}`);
+  setMeta('og:description', `${appData.appName} v${appData.version} · Tap to install on your device`);
+  if (appData.iconUrl) setMeta('og:image', appData.iconUrl);
+
+  // App info
+  document.getElementById('appName').textContent    = appData.appName || 'Unknown App';
+  document.getElementById('appBundle').textContent  = appData.bundleId || appData.fileName || '';
+  document.getElementById('versionBadge').textContent = `v${appData.version || '1.0'}`;
+
+  const platBadge = document.getElementById('platformBadge');
+  platBadge.textContent = appData.platform === 'ios' ? 'iOS' : 'Android';
+  platBadge.className   = 'badge ' + (appData.platform === 'ios' ? 'badge-ios' : 'badge-android');
+
+  // Icon
+  if (appData.iconUrl) {
+    const iconEl = document.getElementById('appIcon');
+    iconEl.src   = appData.iconUrl;
+    iconEl.style.display = 'block';
+  } else {
+    document.getElementById('iconFallback').style.display = 'flex';
+  }
+
+  // Platform-specific install
+  const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const isMobile  = isIOS || isAndroid;
+
+  if (!isMobile) {
+    document.getElementById('desktopNotice').classList.add('desktop-visible');
+  }
+
+  if (appData.platform === 'ios') {
+    document.getElementById('ios-section').style.display = 'flex';
+    const manifestUrl = encodeURIComponent(appData.manifestUrl);
+    document.getElementById('installBtn').href = `itms-services://?action=download-manifest&url=${manifestUrl}`;
+  } else {
+    document.getElementById('android-section').style.display = 'flex';
+    document.getElementById('downloadBtn').href = appData.ipaUrl;
+  }
+
+  // QR code
+  await QRCode.toCanvas(document.getElementById('qrCanvas'), location.href, {
+    width: 180, margin: 2,
+    color: { dark: '#ffffff', light: '#161616' }
+  });
+
+  // Meta info
+  if (appData.fileSize) {
+    const el = document.getElementById('fileSizeMeta');
+    el.querySelector('span').textContent = formatBytes(appData.fileSize);
+    el.style.display = 'flex';
+  }
+  if (appData.uploadedAt) {
+    const el = document.getElementById('uploadedMeta');
+    el.querySelector('span').textContent = 'Uploaded ' + formatDate(appData.uploadedAt);
+    el.style.display = 'flex';
+  }
+  if (appData.expiresAt) {
+    const el = document.getElementById('expiryMeta');
+    el.querySelector('span').textContent = 'Expires ' + formatDate(appData.expiresAt);
+    el.style.display = 'inline-flex';
+  }
+
+  // Increment view count (non-blocking)
+  try { await updateDoc(doc(db, 'apps', appId), { downloadCount: increment(1) }); } catch (_) {}
+
+  showState('app');
+}
+
+function showError(title, msg) {
+  document.getElementById('errorTitle').textContent = title;
+  document.getElementById('errorMsg').textContent   = msg;
+  showState('error');
+}
+
+function setMeta(property, content) {
+  let el = document.querySelector(`meta[property="${property}"]`);
+  if (!el) { el = document.createElement('meta'); el.setAttribute('property', property); document.head.appendChild(el); }
+  el.setAttribute('content', content);
+}
+
+function formatBytes(b) {
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+feather.replace();
+loadApp();
+</script>
+
+</body>
+</html>

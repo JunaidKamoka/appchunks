@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AppChunks Distribute — Upload & Share iOS/Android Apps</title>
+  <meta name="description" content="Upload your IPA or APK and get a shareable install link instantly. Built for mobile app developers."/>
+  <link rel="icon" type="image/x-icon" href="../images/favicon.ico"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    :root{
+      --bg:#000;--bg2:#0d0d0d;--bg3:#161616;--bg4:#1c1c1c;
+      --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+      --text:#fff;--text2:#909090;--text3:#555;
+      --blue:#3b82f6;--blue-light:rgba(59,130,246,0.12);
+      --green:#22c55e;--green-light:rgba(34,197,94,0.12);
+      --red:#ef4444;--red-light:rgba(239,68,68,0.12);
+      --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+      --r:12px;--r-lg:18px;--r-xl:24px;
+      --shadow:0 4px 24px rgba(0,0,0,0.6);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+    a{color:inherit;text-decoration:none}img{display:block;max-width:100%}
+    button{cursor:pointer;border:none;background:none;font-family:inherit}
+    input,select{font-family:inherit}
+    ::selection{background:rgba(59,130,246,0.3)}
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+    /* ── NAV ── */
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:64px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:100}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+    .nav-logo img{border-radius:7px}
+    .nav-tag{background:var(--blue-light);color:var(--blue);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:0.3px}
+    .nav-back{color:var(--text2);font-size:14px;display:flex;align-items:center;gap:6px;transition:color .2s}
+    .nav-back:hover{color:var(--text)}
+    .nav-back svg{width:14px;height:14px}
+
+    /* ── MAIN ── */
+    .main{max-width:580px;margin:0 auto;padding:64px 24px 100px}
+
+    /* ── HERO ── */
+    .hero{text-align:center;margin-bottom:52px}
+    .hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--blue-light);color:var(--blue);font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;margin-bottom:20px;letter-spacing:0.3px}
+    .hero h1{font-size:38px;font-weight:800;letter-spacing:-1px;margin-bottom:14px;line-height:1.1}
+    .hero p{color:var(--text2);font-size:16px;line-height:1.7;max-width:420px;margin:0 auto}
+
+    /* ── STATES ── */
+    .state{display:none}
+    .state.active{display:block}
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone{background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--r-xl);padding:64px 40px;text-align:center;cursor:pointer;transition:all .25s;position:relative}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--blue);background:var(--blue-light)}
+    .upload-zone-icon{color:var(--text3);margin-bottom:20px;transition:color .25s}
+    .upload-zone-icon svg{width:52px;height:52px}
+    .upload-zone:hover .upload-zone-icon,.upload-zone.drag-over .upload-zone-icon{color:var(--blue)}
+    .upload-title{font-size:18px;font-weight:600;margin-bottom:8px}
+    .upload-sub{color:var(--text2);font-size:15px;margin-bottom:16px}
+    .link-btn{background:none;border:none;color:var(--blue);cursor:pointer;font-size:15px;font-family:inherit;font-weight:500;padding:0;transition:opacity .2s}
+    .link-btn:hover{opacity:.8}
+    .upload-hints{display:flex;align-items:center;justify-content:center;gap:12px;color:var(--text3);font-size:13px;margin-top:4px}
+    .hint-dot{width:3px;height:3px;background:var(--text3);border-radius:50%}
+
+    /* ── CARD ── */
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-xl);padding:32px}
+    .center-card{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:56px 32px}
+
+    /* ── SPINNER ── */
+    .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.08);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner-label{color:var(--text2);font-size:14px}
+
+    /* ── APP PREVIEW ── */
+    .app-preview{display:flex;align-items:center;gap:18px;position:relative;padding-right:32px}
+    .app-icon{width:76px;height:76px;border-radius:18px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+    .app-icon-fallback{width:76px;height:76px;border-radius:18px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);flex-shrink:0;border:1px solid var(--border)}
+    .app-icon-fallback svg{width:32px;height:32px}
+    .app-meta{min-width:0;flex:1}
+    .app-meta h2{font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .app-meta-bundle{color:var(--text2);font-size:12px;font-family:var(--mono);margin:4px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .meta-badges{display:flex;flex-wrap:wrap;gap:6px}
+    .badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,0.07);color:var(--text2)}
+    .badge-ios{background:var(--blue-light);color:var(--blue)}
+    .badge-android{background:var(--green-light);color:var(--green)}
+    .change-btn{position:absolute;top:0;right:0;color:var(--text3);padding:4px;transition:color .2s}
+    .change-btn:hover{color:var(--text)}
+    .change-btn svg{width:18px;height:18px}
+
+    /* ── DIVIDER ── */
+    .divider{border:none;height:1px;background:var(--border);margin:24px 0}
+
+    /* ── OPTIONS ── */
+    .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px}
+    .opt-label{display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px}
+    .opt-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 14px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none}
+    .opt-input:focus{border-color:var(--blue)}
+    .opt-input::placeholder{color:var(--text3)}
+    select.opt-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+    select.opt-input option{background:#1c1c1c}
+
+    /* ── BUTTONS ── */
+    .btn-primary{width:100%;background:#fff;color:#000;border:none;border-radius:var(--r);padding:14px 24px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .1s}
+    .btn-primary:hover{opacity:.88}
+    .btn-primary:active{transform:scale(.99)}
+    .btn-primary svg{width:18px;height:18px}
+    .btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:var(--r);padding:10px 20px;font-family:var(--font);font-size:14px;cursor:pointer;transition:all .2s;text-decoration:none}
+    .btn-outline:hover{border-color:var(--text2);color:var(--text)}
+
+    /* ── PROGRESS ── */
+    .progress-wrap{width:100%;max-width:360px}
+    .progress-step{color:var(--text2);font-size:13px;margin-bottom:12px}
+    .progress-track{width:100%;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:3px;transition:width .4s ease;width:0%}
+    .progress-pct{font-size:32px;font-weight:800;letter-spacing:-1px;margin-top:16px}
+
+    /* ── SUCCESS ── */
+    .success-header{display:flex;align-items:center;gap:16px;margin-bottom:28px}
+    .success-checkmark{width:48px;height:48px;background:var(--green-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--green);flex-shrink:0}
+    .success-checkmark svg{width:24px;height:24px}
+    .success-title{font-size:20px;font-weight:700}
+    .success-sub{color:var(--text2);font-size:14px;margin-top:2px}
+    .share-box{display:flex;gap:8px;margin-bottom:24px}
+    .share-input{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 14px;color:var(--text);font-size:13px;font-family:var(--mono);outline:none}
+    .copy-btn{flex-shrink:0;background:#fff;color:#000;border:none;border-radius:var(--r);padding:10px 16px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .2s;white-space:nowrap}
+    .copy-btn:hover{opacity:.85}
+    .copy-btn svg{width:15px;height:15px}
+    .qr-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px;background:var(--bg3);border-radius:var(--r-lg);padding:24px}
+    .qr-label{color:var(--text2);font-size:13px}
+
+    /* ── ERROR ── */
+    .error-icon{width:52px;height:52px;background:var(--red-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--red)}
+    .error-icon svg{width:24px;height:24px}
+    .error-msg{color:var(--text2);font-size:14px;text-align:center;max-width:320px}
+
+    /* ── FOOTER ── */
+    .footer{text-align:center;padding:48px 24px;color:var(--text3);font-size:13px;border-top:1px solid var(--border)}
+    .footer a{color:var(--text2);transition:color .2s}.footer a:hover{color:var(--text)}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:600px){
+      .main{padding:40px 16px 80px}
+      .hero h1{font-size:28px}
+      .upload-zone{padding:48px 24px}
+      .card{padding:24px}
+      .options-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="../images/logo.png" alt="AppChunks" width="28" height="28"/>
+    <span>AppChunks</span>
+    <span class="nav-tag">Distribute</span>
+  </a>
+  <a href="/" class="nav-back">
+    <i data-feather="arrow-left"></i>
+    Back to AppChunks
+  </a>
+</nav>
+
+<main class="main">
+
+  <div class="hero">
+    <div class="hero-badge"><i data-feather="upload-cloud"></i> App Distribution</div>
+    <h1>Share Your App<br>Instantly</h1>
+    <p>Upload an IPA or APK and get a shareable install link — no TestFlight account needed.</p>
+  </div>
+
+  <!-- ── IDLE ── -->
+  <div id="state-idle" class="state active">
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-zone-icon"><i data-feather="upload-cloud"></i></div>
+      <p class="upload-title">Drop your file here</p>
+      <p class="upload-sub">or <button class="link-btn" id="browseBtn">browse files</button></p>
+      <div class="upload-hints">
+        <span>IPA (iOS)</span><div class="hint-dot"></div>
+        <span>APK (Android)</span><div class="hint-dot"></div>
+        <span>Up to 500 MB</span>
+      </div>
+      <input type="file" id="fileInput" accept=".ipa,.apk" hidden/>
+    </div>
+  </div>
+
+  <!-- ── PARSING ── -->
+  <div id="state-parsing" class="state">
+    <div class="card center-card">
+      <div class="spinner"></div>
+      <p class="spinner-label">Reading app metadata…</p>
+    </div>
+  </div>
+
+  <!-- ── PREVIEW ── -->
+  <div id="state-preview" class="state">
+    <div class="card">
+
+      <div class="app-preview">
+        <img id="previewIcon" class="app-icon" src="" alt="" style="display:none"/>
+        <div id="previewIconFallback" class="app-icon-fallback"><i data-feather="smartphone"></i></div>
+        <div class="app-meta">
+          <h2 id="previewName">App Name</h2>
+          <p class="app-meta-bundle" id="previewBundle"></p>
+          <div class="meta-badges">
+            <span id="previewVersion" class="badge"></span>
+            <span id="previewPlatform" class="badge"></span>
+          </div>
+        </div>
+        <button class="change-btn" id="changeFileBtn" title="Change file"><i data-feather="x"></i></button>
+      </div>
+
+      <hr class="divider"/>
+
+      <div class="options-grid">
+        <div>
+          <label class="opt-label">Expiry</label>
+          <select id="expirySelect" class="opt-input">
+            <option value="0">Never expires</option>
+            <option value="1">1 Day</option>
+            <option value="7">7 Days</option>
+            <option value="30">30 Days</option>
+          </select>
+        </div>
+        <div>
+          <label class="opt-label">Password (optional)</label>
+          <input type="text" id="passwordInput" class="opt-input" placeholder="Leave blank for none" autocomplete="off"/>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="startUploadBtn">
+        <i data-feather="upload"></i>
+        Upload &amp; Generate Link
+      </button>
+    </div>
+  </div>
+
+  <!-- ── UPLOADING ── -->
+  <div id="state-uploading" class="state">
+    <div class="card center-card">
+      <p class="progress-step" id="progressStep">Uploading…</p>
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <p class="progress-pct" id="progressPct">0%</p>
+    </div>
+  </div>
+
+  <!-- ── SUCCESS ── -->
+  <div id="state-success" class="state">
+    <div class="card">
+      <div class="success-header">
+        <div class="success-checkmark"><i data-feather="check"></i></div>
+        <div>
+          <p class="success-title">Your app is live!</p>
+          <p class="success-sub">Share this link with your testers</p>
+        </div>
+      </div>
+
+      <div class="share-box">
+        <input type="text" id="shareUrl" class="share-input" readonly/>
+        <button class="copy-btn" id="copyBtn"><i data-feather="copy"></i><span>Copy</span></button>
+      </div>
+
+      <div class="qr-wrap">
+        <canvas id="qrCanvas"></canvas>
+        <p class="qr-label">Scan to open on device</p>
+      </div>
+
+      <button class="btn-outline" id="newUploadBtn" style="width:100%">
+        <i data-feather="plus"></i>
+        Upload Another App
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ERROR ── -->
+  <div id="state-error" class="state">
+    <div class="card center-card">
+      <div class="error-icon"><i data-feather="alert-circle"></i></div>
+      <p id="errorMsg" class="error-msg">Something went wrong. Please try again.</p>
+      <button class="btn-outline" id="retryBtn"><i data-feather="refresh-cw"></i> Try Again</button>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <p>© 2025 <a href="/">AppChunks</a> · For development &amp; testing use only · <a href="/privacy.html">Privacy</a></p>
+</footer>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp }                                               from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
+import { getAnalytics }                                                from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js';
+import { getFirestore, doc, setDoc }                                   from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+import { getStorage, ref as sRef, uploadBytesResumable, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js';
+
+// ── Firebase config ───────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDI6MUNw1eRX2Qv7234ZxD0Mj-RI7-77rw",
+  authDomain:        "appchunks-e9226.firebaseapp.com",
+  projectId:         "appchunks-e9226",
+  storageBucket:     "appchunks-e9226.firebasestorage.app",
+  messagingSenderId: "241451997811",
+  appId:             "1:241451997811:web:68b210eec8f608818e2806",
+  measurementId:     "G-CZDFG62ZJE"
+};
+
+// Base URL for share links (no trailing slash)
+const SITE_URL = 'https://appchunks.com/distribute';
+
+// ── Allowed file types & max size ─────────────────────────
+const ALLOWED_TYPES = ['.ipa', '.apk'];
+const MAX_BYTES     = 500 * 1024 * 1024; // 500 MB
+
+// ── Init Firebase ─────────────────────────────────────────
+const _app    = initializeApp(FIREBASE_CONFIG);
+getAnalytics(_app);
+const db      = getFirestore(_app);
+const storage = getStorage(_app);
+
+// ── STATE ─────────────────────────────────────────────────
+const STATES = ['idle','parsing','preview','uploading','success','error'];
+function showState(name) {
+  STATES.forEach(s => {
+    const el = document.getElementById(`state-${s}`);
+    if (el) el.classList.toggle('active', s === name);
+  });
+  feather.replace();
+}
+
+let selectedFile = null;
+let parsedMeta   = null;
+let iconBlob     = null;
+
+// ── FILE INPUT ────────────────────────────────────────────
+const fileInput  = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+
+document.getElementById('browseBtn').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('click', e => {
+  if (!e.target.closest('.link-btn')) fileInput.click();
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+document.getElementById('changeFileBtn').addEventListener('click', resetToIdle);
+document.getElementById('startUploadBtn').addEventListener('click', startUpload);
+document.getElementById('newUploadBtn').addEventListener('click', resetToIdle);
+document.getElementById('retryBtn').addEventListener('click', resetToIdle);
+document.getElementById('copyBtn').addEventListener('click', copyLink);
+
+function resetToIdle() {
+  selectedFile = parsedMeta = iconBlob = null;
+  fileInput.value = '';
+  showState('idle');
+}
+
+// ── FILE HANDLER ──────────────────────────────────────────
+async function handleFile(file) {
+  const low = file.name.toLowerCase();
+  if (!low.endsWith('.ipa') && !low.endsWith('.apk')) {
+    return alert('Please select an IPA (.ipa) or APK (.apk) file.');
+  }
+  if (file.size > MAX_BYTES) {
+    return alert('File size must be under 500 MB.');
+  }
+  selectedFile = file;
+  showState('parsing');
+
+  try {
+    if (low.endsWith('.ipa')) {
+      parsedMeta = await parseIPA(file);
+      parsedMeta.platform = 'ios';
+    } else {
+      parsedMeta = {
+        appName: file.name.replace(/\.apk$/i, ''),
+        bundleId: '', version: '1.0', platform: 'android', iconBlob: null
+      };
+    }
+    parsedMeta.fileSize = file.size;
+    parsedMeta.fileName = file.name;
+  } catch (err) {
+    console.warn('Parse error (using fallback):', err);
+    parsedMeta = {
+      appName: file.name.replace(/\.(ipa|apk)$/i, ''),
+      bundleId: '', version: '1.0',
+      platform: low.endsWith('.ipa') ? 'ios' : 'android',
+      fileSize: file.size, fileName: file.name, iconBlob: null
+    };
+  }
+
+  iconBlob = parsedMeta.iconBlob || null;
+  showPreview();
+}
+
+function showPreview() {
+  document.getElementById('previewName').textContent = parsedMeta.appName || 'Unknown App';
+  document.getElementById('previewBundle').textContent = parsedMeta.bundleId || parsedMeta.fileName;
+  document.getElementById('previewVersion').textContent = parsedMeta.version ? `v${parsedMeta.version}` : 'Unknown version';
+
+  const platEl = document.getElementById('previewPlatform');
+  platEl.textContent = parsedMeta.platform === 'ios' ? 'iOS' : 'Android';
+  platEl.className = 'badge ' + (parsedMeta.platform === 'ios' ? 'badge-ios' : 'badge-android');
+
+  const iconEl  = document.getElementById('previewIcon');
+  const fallback = document.getElementById('previewIconFallback');
+  if (iconBlob) {
+    iconEl.src = URL.createObjectURL(iconBlob);
+    iconEl.style.display = 'block'; fallback.style.display = 'none';
+  } else {
+    iconEl.style.display = 'none'; fallback.style.display = 'flex';
+  }
+  showState('preview');
+}
+
+// ── UPLOAD ────────────────────────────────────────────────
+async function startUpload() {
+  // Guard: validate file type one more time server-side would reject anyway
+  if (!selectedFile || !ALLOWED_TYPES.some(ext => selectedFile.name.toLowerCase().endsWith(ext))) {
+    return alert('Invalid file type. Please upload an IPA or APK.');
+  }
+  if (selectedFile.size > MAX_BYTES) {
+    return alert('File too large. Max 500 MB.');
+  }
+
+  const password   = document.getElementById('passwordInput').value.trim();
+  const expiryDays = parseInt(document.getElementById('expirySelect').value, 10);
+  const appId      = generateId();
+
+  showState('uploading');
+  setProgress(0, 'Uploading app file…');
+
+  try {
+    // 1. Upload IPA / APK
+    const ipaUrl = await uploadBlob(
+      selectedFile,
+      `apps/${appId}/${selectedFile.name}`,
+      { contentType: selectedFile.type || 'application/octet-stream' },
+      p => setProgress(p * 0.70, 'Uploading app file…')
+    );
+
+    // 2. Upload icon
+    setProgress(72, 'Uploading icon…');
+    let iconUrl = '';
+    if (iconBlob) {
+      iconUrl = await uploadBlob(iconBlob, `apps/${appId}/icon.png`, { contentType: 'image/png' });
+    }
+    setProgress(82, 'Generating install link…');
+
+    // 3. Generate & upload manifest.plist (iOS only)
+    let manifestUrl = '';
+    if (parsedMeta.platform === 'ios') {
+      const plistXml  = buildManifestPlist(ipaUrl, parsedMeta, iconUrl);
+      const plistBlob = new Blob([plistXml], { type: 'text/xml; charset=utf-8' });
+      manifestUrl = await uploadBlob(plistBlob, `apps/${appId}/manifest.plist`, { contentType: 'text/xml' });
+    }
+    setProgress(92, 'Saving metadata…');
+
+    // 4. Save metadata to Firestore
+    const expiresAt = expiryDays > 0
+      ? new Date(Date.now() + expiryDays * 86400000).toISOString()
+      : null;
+
+    await setDoc(doc(db, 'apps', appId), {
+      appId, platform: parsedMeta.platform,
+      appName:  parsedMeta.appName  || 'Unknown App',
+      bundleId: parsedMeta.bundleId || '',
+      version:  parsedMeta.version  || '1.0',
+      fileName: parsedMeta.fileName,
+      fileSize: parsedMeta.fileSize,
+      ipaUrl, manifestUrl, iconUrl,
+      uploadedAt: new Date().toISOString(),
+      expiresAt,
+      password: password || '',
+      downloadCount: 0
+    });
+
+    setProgress(100, 'Done!');
+
+    // 5. Show success
+    const shareUrl = `${SITE_URL}/app.html?id=${appId}`;
+    document.getElementById('shareUrl').value = shareUrl;
+
+    await QRCode.toCanvas(document.getElementById('qrCanvas'), shareUrl, {
+      width: 200, margin: 2,
+      color: { dark: '#ffffff', light: '#161616' }
+    });
+
+    setTimeout(() => showState('success'), 400);
+
+  } catch (err) {
+    console.error('Upload error:', err);
+    document.getElementById('errorMsg').textContent = err.message || 'Upload failed. Please try again.';
+    showState('error');
+  }
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent  = Math.round(pct) + '%';
+  document.getElementById('progressStep').textContent = label;
+}
+
+function uploadBlob(fileOrBlob, path, meta, onProgress) {
+  return new Promise((resolve, reject) => {
+    const ref  = sRef(storage, path);
+    const task = uploadBytesResumable(ref, fileOrBlob, meta);
+    task.on('state_changed',
+      snap => { if (onProgress) onProgress(snap.bytesTransferred / snap.totalBytes * 100); },
+      reject,
+      () => getDownloadURL(task.snapshot.ref).then(resolve).catch(reject)
+    );
+  });
+}
+
+function generateId() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(10)))
+    .map(b => chars[b % chars.length]).join('');
+}
+
+function buildManifestPlist(ipaUrl, meta, iconUrl) {
+  const x = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const iconAsset = iconUrl ? `
+        <dict>
+          <key>kind</key><string>display-image</string>
+          <key>url</key><string>${x(iconUrl)}</string>
+        </dict>` : '';
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>items</key>
+  <array>
+    <dict>
+      <key>assets</key>
+      <array>
+        <dict>
+          <key>kind</key><string>software-package</string>
+          <key>url</key><string>${x(ipaUrl)}</string>
+        </dict>${iconAsset}
+      </array>
+      <key>metadata</key>
+      <dict>
+        <key>bundle-identifier</key><string>${x(meta.bundleId || 'com.app.default')}</string>
+        <key>bundle-version</key><string>${x(meta.version || '1.0')}</string>
+        <key>kind</key><string>software</string>
+        <key>title</key><string>${x(meta.appName || 'App')}</string>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>`;
+}
+
+async function copyLink() {
+  const url = document.getElementById('shareUrl').value;
+  try {
+    await navigator.clipboard.writeText(url);
+    const btn = document.getElementById('copyBtn');
+    const lbl = btn.querySelector('span');
+    lbl.textContent = 'Copied!';
+    setTimeout(() => { lbl.textContent = 'Copy'; }, 2000);
+  } catch { /* fallback for older browsers */ }
+}
+
+// ── IPA PARSER ────────────────────────────────────────────
+async function parseIPA(file) {
+  const buffer  = await file.arrayBuffer();
+  const zip     = await JSZip.loadAsync(buffer);
+  const entries = Object.keys(zip.files);
+
+  const plistEntry = entries.find(e => /^Payload\/[^/]+\.app\/Info\.plist$/.test(e));
+  if (!plistEntry) throw new Error('Invalid IPA: Info.plist not found');
+
+  const appPath    = plistEntry.replace('/Info.plist', '');
+  const plistBuf   = await zip.files[plistEntry].async('arraybuffer');
+  const plistBytes = new Uint8Array(plistBuf);
+  const magic      = String.fromCharCode(...plistBytes.slice(0, 8));
+
+  let info;
+  if (magic.startsWith('bplist')) {
+    info = parseBinaryPlist(plistBuf) || {};
+  } else {
+    info = parseXMLPlist(new TextDecoder().decode(plistBuf));
+  }
+
+  // Try to extract app icon
+  let ib = null;
+  const iconCandidates = [
+    `${appPath}/AppIcon60x60@3x.png`,
+    `${appPath}/AppIcon60x60@2x.png`,
+    `${appPath}/AppIcon76x76@2x.png`,
+    `${appPath}/AppIcon57x57@2x.png`,
+    ...entries.filter(e => e.startsWith(appPath + '/') && e.includes('AppIcon') && e.endsWith('.png'))
+              .sort((a, b) => {
+                const sa = parseInt(a.match(/(\d+)x\d+/)?.[1] || '0');
+                const sb = parseInt(b.match(/(\d+)x\d+/)?.[1] || '0');
+                return sb - sa;
+              })
+  ];
+  for (const p of [...new Set(iconCandidates)]) {
+    if (zip.files[p]) { try { ib = await zip.files[p].async('blob'); break; } catch (_) {} }
+  }
+
+  return {
+    bundleId: info.CFBundleIdentifier || '',
+    appName:  info.CFBundleDisplayName || info.CFBundleName || file.name.replace(/\.ipa$/i,''),
+    version:  info.CFBundleShortVersionString || info.CFBundleVersion || '1.0',
+    minOS:    info.MinimumOSVersion || '',
+    iconBlob: ib
+  };
+}
+
+function parseXMLPlist(xml) {
+  const doc  = new DOMParser().parseFromString(xml, 'text/xml');
+  const dict = doc.querySelector('plist > dict');
+  if (!dict) return {};
+  const res = {}, kids = [...dict.children];
+  for (let i = 0; i + 1 < kids.length; i += 2) {
+    if (kids[i].tagName === 'key') res[kids[i].textContent.trim()] = kids[i+1].textContent.trim();
+  }
+  return res;
+}
+
+function parseBinaryPlist(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const n = bytes.length;
+  if (n < 40) return null;
+  if (String.fromCharCode(...bytes.slice(0, 8)) !== 'bplist00') return null;
+
+  const offsetSize = bytes[n - 26];
+  const refSize    = bytes[n - 25];
+
+  function ri(pos, size) {
+    let v = 0;
+    for (let i = 0; i < size; i++) v = v * 256 + bytes[pos + i];
+    return v;
+  }
+
+  const numObjects  = ri(n - 24, 8);
+  const topObject   = ri(n - 16, 8);
+  const offsetTable = ri(n - 8,  8);
+  const offsets     = Array.from({length: numObjects}, (_, i) => ri(offsetTable + i * offsetSize, offsetSize));
+
+  function readObj(idx) {
+    if (idx >= offsets.length) return undefined;
+    let p  = offsets[idx];
+    const m = bytes[p++];
+    const type = (m >> 4) & 0xF;
+    let cnt = m & 0xF;
+
+    if (cnt === 0xF && type >= 0x4) {
+      const im = bytes[p++];
+      const il = 1 << (im & 0xF);
+      cnt = ri(p, il); p += il;
+    }
+
+    switch (type) {
+      case 0x0: return m === 0x09 ? true : m === 0x08 ? false : null;
+      case 0x1: return ri(p, 1 << cnt);
+      case 0x5: return String.fromCharCode(...bytes.slice(p, p + cnt));
+      case 0x6: { let s=''; for(let i=0;i<cnt;i++) s+=String.fromCharCode(bytes[p+i*2]*256+bytes[p+i*2+1]); return s; }
+      case 0xA: return Array.from({length:cnt}, (_,i) => readObj(ri(p + i * refSize, refSize)));
+      case 0xD: {
+        const d = {};
+        for (let i = 0; i < cnt; i++) {
+          const k = readObj(ri(p + i * refSize, refSize));
+          const v = readObj(ri(p + (cnt + i) * refSize, refSize));
+          if (typeof k === 'string') d[k] = v;
+        }
+        return d;
+      }
+    }
+    return undefined;
+  }
+
+  return readObj(topObject);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+feather.replace();
+</script>
+
+</body>
+</html>
