@@ -490,12 +490,14 @@ async function startUpload() {
       downloadCount: 0
     });
 
-    setProgress(100, 'Done!');
+    setProgress(96, 'Shortening URL…');
 
-    // 5. Show success
-    const shareUrl = `${SITE_URL}/app.html?id=${appId}`;
+    // 5. Shorten URL then show success
+    const longUrl  = `${SITE_URL}/app.html?id=${appId}`;
+    const shareUrl = await shortenUrl(longUrl);
     document.getElementById('shareUrl').value = shareUrl;
 
+    setProgress(100, 'Done!');
     await QRCode.toCanvas(document.getElementById('qrCanvas'), shareUrl, {
       width: 200, margin: 2,
       color: { dark: '#ffffff', light: '#161616' }
@@ -577,6 +579,22 @@ async function copyLink() {
     lbl.textContent = 'Copied!';
     setTimeout(() => { lbl.textContent = 'Copy'; }, 2000);
   } catch { /* fallback for older browsers */ }
+}
+
+// ── URL SHORTENER ─────────────────────────────────────────
+// Uses is.gd free API (no key, CORS-enabled). Falls back to long URL.
+async function shortenUrl(longUrl) {
+  try {
+    const res = await fetch(
+      `https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`,
+      { signal: AbortSignal.timeout(6000) }
+    );
+    if (!res.ok) return longUrl;
+    const short = (await res.text()).trim();
+    return (short.startsWith('http://') || short.startsWith('https://')) ? short : longUrl;
+  } catch {
+    return longUrl; // timeout or network error — silently use long URL
+  }
 }
 
 // ── IPA PARSER ────────────────────────────────────────────
