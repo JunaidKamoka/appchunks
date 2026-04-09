@@ -286,27 +286,39 @@
 
   // ── KEYWORD INPUT SUGGESTIONS ─────────────────────────────────────
   let suggestTimeout;
+  let suggestAbort = null;
+
   function onKeywordInput() {
     clearTimeout(suggestTimeout);
     const val = els.keywordInput.value.trim();
     if (!val) { els.suggestions.innerHTML = ''; return; }
 
-    suggestTimeout = setTimeout(() => {
-      const suggestions = generateSuggestions(val);
-      els.suggestions.innerHTML = suggestions
-        .map(s => `<button class="suggestion-chip">${s}</button>`)
-        .join('');
-      $$('#suggestions .suggestion-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          els.keywordInput.value = chip.textContent;
-          els.suggestions.innerHTML = '';
-          doSearch(chip.textContent);
-        });
-      });
-    }, 300);
+    suggestTimeout = setTimeout(async () => {
+      try {
+        const hints = await API.fetchSearchHints(val, state.country);
+        // Ignore stale result if input changed
+        if (els.keywordInput.value.trim() !== val) return;
+        renderSuggestions(hints.length ? hints : staticSuggestions(val));
+      } catch (e) {
+        renderSuggestions(staticSuggestions(val));
+      }
+    }, 250);
   }
 
-  function generateSuggestions(base) {
+  function renderSuggestions(suggestions) {
+    els.suggestions.innerHTML = suggestions
+      .map(s => `<button class="suggestion-chip">${escHtml(s)}</button>`)
+      .join('');
+    $$('#suggestions .suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        els.keywordInput.value = chip.textContent;
+        els.suggestions.innerHTML = '';
+        doSearch(chip.textContent);
+      });
+    });
+  }
+
+  function staticSuggestions(base) {
     const mods = ['free','pro','best','2025','for beginners','advanced','no ads','offline'];
     return mods.map(m => `${base} ${m}`).slice(0, 6);
   }

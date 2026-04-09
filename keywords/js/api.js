@@ -8,6 +8,20 @@ const API = (() => {
 
   // ── ITUNES SEARCH API ──────────────────────────────────────────────
   const ITUNES_BASE = 'https://itunes.apple.com/search';
+  const HINTS_BASE  = 'https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints';
+
+  /**
+   * Fetch real-time search suggestions from Apple's Search Hints API.
+   * Returns an array of suggestion strings.
+   */
+  async function fetchSearchHints(term, country = 'us') {
+    const url = `${HINTS_BASE}?term=${encodeURIComponent(term)}&media=software&country=${country}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Hints API error: ${res.status}`);
+    const data = await res.json();
+    // Response: { hints: [{ term: "..." }, ...] }
+    return (data.hints || []).map(h => h.term).filter(Boolean).slice(0, 8);
+  }
 
   const PLATFORM_ENTITY = {
     ios:     'software',
@@ -918,6 +932,7 @@ const API = (() => {
 
   return {
     searchKeyword,
+    fetchSearchHints,
     getTrending,
     generateASOMetadata,
     estimateAppRevenue,
