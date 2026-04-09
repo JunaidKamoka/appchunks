@@ -7,8 +7,10 @@
 const API = (() => {
 
   // ── ITUNES SEARCH API ──────────────────────────────────────────────
-  const ITUNES_BASE = 'https://itunes.apple.com/search';
-  const HINTS_BASE  = 'https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints';
+  const ITUNES_BASE   = 'https://itunes.apple.com/search';
+  const ITUNES_LOOKUP = 'https://itunes.apple.com/lookup';
+  const GENRES_BASE   = 'https://itunes.apple.com/WebObjects/MZStoreServices.woa/ws/genres';
+  const HINTS_BASE    = 'https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints';
 
   /**
    * Fetch real-time search suggestions from Apple's Search Hints API.
@@ -41,6 +43,70 @@ const API = (() => {
     if (!res.ok) throw new Error(`iTunes API error: ${res.status}`);
     const data = await res.json();
     return data.results || [];
+  }
+
+  /**
+   * Lookup app by iTunes track ID — returns full app details.
+   */
+  async function lookupById(trackId, country = 'us') {
+    const url = `${ITUNES_LOOKUP}?id=${encodeURIComponent(trackId)}&country=${country}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Lookup API error: ${res.status}`);
+    const data = await res.json();
+    const result = (data.results || [])[0];
+    return result ? normalizeITunesApp(result, 0) : null;
+  }
+
+  /**
+   * Lookup app by bundle ID — returns full app details.
+   */
+  async function lookupByBundleId(bundleId, country = 'us') {
+    const url = `${ITUNES_LOOKUP}?bundleId=${encodeURIComponent(bundleId)}&country=${country}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Bundle lookup API error: ${res.status}`);
+    const data = await res.json();
+    const result = (data.results || [])[0];
+    return result ? normalizeITunesApp(result, 0) : null;
+  }
+
+  /**
+   * Lookup all apps by a developer (artist ID).
+   * Returns array of normalized apps.
+   */
+  async function lookupDeveloper(artistId, country = 'us') {
+    const url = `${ITUNES_LOOKUP}?id=${encodeURIComponent(artistId)}&entity=software&country=${country}&limit=200`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Developer lookup API error: ${res.status}`);
+    const data = await res.json();
+    // First result is the artist, rest are apps
+    return (data.results || [])
+      .filter(r => r.wrapperType === 'software')
+      .map((r, i) => normalizeITunesApp(r, i + 1));
+  }
+
+  /**
+   * Fetch App Store genre/category list.
+   * Returns { id: { name, url, subgenres } } map.
+   */
+  let _genresCache = null;
+  async function fetchGenres() {
+    if (_genresCache) return _genresCache;
+    const url = `${GENRES_BASE}?media=software`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Genres API error: ${res.status}`);
+    const data = await res.json();
+    // Flatten top-level genres into a simple list
+    const genres = [];
+    for (const [id, genre] of Object.entries(data)) {
+      genres.push({ id, name: genre.name, url: genre.url });
+      if (genre.subgenres) {
+        for (const [subId, sub] of Object.entries(genre.subgenres)) {
+          genres.push({ id: subId, name: sub.name, url: sub.url, parent: genre.name });
+        }
+      }
+    }
+    _genresCache = genres;
+    return genres;
   }
 
   /**
@@ -85,6 +151,7 @@ const API = (() => {
     return {
       rank,
       id:           String(raw.trackId || raw.artistId),
+      artistId:     String(raw.artistId || ''),
       name:         raw.trackName || raw.artistName || 'Unknown App',
       developer:    raw.artistName || 'Unknown Developer',
       bundleId:     raw.bundleId || '',
@@ -964,6 +1031,10 @@ const API = (() => {
   return {
     searchKeyword,
     fetchSearchHints,
+    lookupById,
+    lookupByBundleId,
+    lookupDeveloper,
+    fetchGenres,
     getTrending,
     generateASOMetadata,
     estimateAppRevenue,

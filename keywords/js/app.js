@@ -596,7 +596,32 @@
   }
 
   // ── APP MODAL ─────────────────────────────────────────────────────
-  function openAppModal(app) {
+  async function openAppModal(app) {
+    // Show modal immediately with search-result data, then enrich via Lookup API
+    els.appModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
+
+    renderModalContent(app);
+
+    // Enrich with fresh data from Lookup API (non-blocking)
+    if (app.id && app.platform !== 'android') {
+      try {
+        const fresh = await API.lookupById(app.id, state.country);
+        if (fresh) {
+          fresh.rank = app.rank;
+          renderModalContent(fresh);
+        }
+      } catch (e) { /* keep search-result data */ }
+    }
+
+    // Load developer's other apps (non-blocking)
+    if (app.id && app.platform !== 'android') {
+      loadDeveloperApps(app);
+    }
+  }
+
+  function renderModalContent(app) {
     const rating   = app.rating || 0;
     const reviews  = API.formatNumber(app.ratingCount || 0);
     const price    = app.isFree ? 'Free' : `$${app.price?.toFixed(2) || '0.00'}`;
@@ -604,8 +629,11 @@
     const version  = app.version || '—';
     const minOS    = app.minOS || '—';
     const updated  = app.updateDate ? app.updateDate.slice(0, 10) : '—';
-    const desc     = app.description || 'No description available.';
+    const released = app.releaseDate ? app.releaseDate.slice(0, 10) : '—';
+    const desc     = app.fullDescription || app.description || 'No description available.';
     const revenue  = API.estimateAppRevenue(app, app.platform || state.platform);
+    const bundleId = app.bundleId || '—';
+    const langCount = (app.languages && app.languages.length) || 0;
 
     const iconHtml = app.icon
       ? `<img class="modal-app-icon" src="${escHtml(app.icon)}" alt="${escHtml(app.name)}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
@@ -613,6 +641,12 @@
     const phHtml = `<div class="modal-app-icon-placeholder" ${app.icon ? 'style="display:none"' : ''}>${appEmoji(app.category)}</div>`;
 
     const relatedKws = generateAppKeywords(app.name, app.category);
+
+    const screenshotHtml = (app.screenshots && app.screenshots.length > 0) ? `
+      <div class="modal-section-title">Screenshots</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">
+        ${app.screenshots.slice(0, 5).map(s => `<img src="${escHtml(s)}" style="height:180px;border-radius:8px;flex-shrink:0" loading="lazy" />`).join('')}
+      </div>` : '';
 
     els.modalContent.innerHTML = `
     <div class="modal-body">
@@ -655,12 +689,20 @@
           <div class="modal-stat-val">${updated}</div>
         </div>
         <div class="modal-stat">
+          <div class="modal-stat-label">Released</div>
+          <div class="modal-stat-val">${released}</div>
+        </div>
+        <div class="modal-stat">
           <div class="modal-stat-label">Price</div>
           <div class="modal-stat-val ${app.isFree ? 'text-green' : 'text-yellow'}">${price}</div>
         </div>
         <div class="modal-stat">
-          <div class="modal-stat-label">In-App Purch.</div>
-          <div class="modal-stat-val ${app.hasIAP ? 'text-blue' : 'text-muted'}">${app.hasIAP ? 'Yes' : 'No'}</div>
+          <div class="modal-stat-label">Languages</div>
+          <div class="modal-stat-val">${langCount > 0 ? langCount : '—'}</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Bundle ID</div>
+          <div class="modal-stat-val font-mono" style="font-size:.65rem;word-break:break-all">${escHtml(bundleId)}</div>
         </div>
       </div>
 
@@ -688,13 +730,17 @@
         </div>
       </div>
 
+      ${screenshotHtml}
+
       <div class="modal-section-title">Description</div>
-      <div class="modal-desc">${escHtml(desc)}${desc.length >= 400 ? '…' : ''}</div>
+      <div class="modal-desc">${escHtml(desc.length > 600 ? desc.slice(0, 600) + '…' : desc)}</div>
 
       <div class="modal-section-title">Likely Keywords</div>
       <div class="modal-kw-list">
         ${relatedKws.map(k => `<button class="modal-kw-chip" data-kw="${escHtml(k)}">${escHtml(k)}</button>`).join('')}
       </div>
+
+      <div id="devAppsSection"></div>
 
       ${app.url ? `
       <div style="margin-top:20px">
@@ -713,10 +759,34 @@
       });
     });
 
-    els.appModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('modal-open');
     try { feather.replace(); } catch(e) {}
+  }
+
+  async function loadDeveloperApps(app) {
+    try {
+      if (!app.artistId) return;
+      const devApps = await API.lookupDeveloper(app.artistId, state.country);
+      const others = devApps.filter(a => String(a.id) !== String(app.id)).slice(0, 10);
+      const section = document.getElementById('devAppsSection');
+      if (!section || others.length === 0) return;
+
+      section.innerHTML = `
+        <div class="modal-section-title">More by ${escHtml(app.developer)} (${others.length})</div>
+        <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px">
+          ${others.map(a => `
+            <div class="dev-app-card" data-appid="${escHtml(a.id)}" style="flex-shrink:0;width:90px;text-align:center;cursor:pointer">
+              ${a.icon ? `<img src="${escHtml(a.icon)}" style="width:50px;height:50px;border-radius:12px;margin-bottom:4px" loading="lazy" />` : `<div style="width:50px;height:50px;border-radius:12px;background:var(--bg-card);margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${appEmoji(a.category)}</div>`}
+              <div style="font-size:.7rem;color:var(--text);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escHtml(a.name)}</div>
+            </div>
+          `).join('')}
+        </div>`;
+
+      section.querySelectorAll('.dev-app-card').forEach((card, i) => {
+        card.addEventListener('click', () => openAppModal(others[i]));
+      });
+    } catch (e) {
+      // Developer lookup not available (e.g. trackId != artistId)
+    }
   }
 
   function closeModal() {
@@ -867,14 +937,25 @@
   // ── COMPETITOR SEARCH ─────────────────────────────────────────────
   async function doCompetitorSearch() {
     const q = els.competitorInput.value.trim();
-    if (!q) { showToast('Enter an app name', 'error'); return; }
+    if (!q) { showToast('Enter an app name or bundle ID', 'error'); return; }
     showToast('Analyzing competitor…', 'info');
 
     try {
-      const res = await API.searchKeyword(q, state.platform, state.country);
-      if (res.apps.length === 0) { showToast('No results found', 'error'); return; }
+      let app = null;
 
-      const app = res.apps[0];
+      // Detect bundle ID (e.g. "com.example.app") or numeric iTunes ID
+      if (/^[a-z][a-z0-9]*(\.[a-z0-9]+)+$/i.test(q)) {
+        app = await API.lookupByBundleId(q, state.country);
+      } else if (/^\d{6,}$/.test(q)) {
+        app = await API.lookupById(q, state.country);
+      }
+
+      // Fallback to keyword search
+      if (!app) {
+        const res = await API.searchKeyword(q, state.platform, state.country);
+        if (res.apps.length === 0) { showToast('No results found', 'error'); return; }
+        app = res.apps[0];
+      }
       const kws = generateAppKeywords(app.name, app.category);
 
       els.competitorResults.innerHTML = `
