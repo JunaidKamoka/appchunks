@@ -359,21 +359,50 @@
       </div>
     </section>
 
-    <!-- ── TRENDING / TOP CHARTS VIEW ── -->
+    <!-- ── TOP CHARTS VIEW ── -->
     <section class="hidden" id="view-trending">
-      <div class="view-header">
-        <h2>Top Charts</h2>
-        <p>Live App Store rankings on <span id="trendingPlatformLabel">iOS</span></p>
+      <!-- Filters row -->
+      <div class="tc-filters">
+        <div class="tc-filter-group">
+          <label class="tc-filter-label">CATEGORY</label>
+          <select id="tcCategorySelect" class="tc-select">
+            <option value="">Top Overall</option>
+            <option value="36">Top Apps</option>
+            <option value="6014">Games</option>
+            <option value="6018">Books</option>
+            <option value="6000">Business</option>
+            <option value="6026">Developer Tools</option>
+            <option value="6017">Education</option>
+            <option value="6016">Entertainment</option>
+            <option value="6015">Finance</option>
+            <option value="6023">Food & Drink</option>
+            <option value="6027">Graphics & Design</option>
+            <option value="6013">Health & Fitness</option>
+            <option value="6012">Lifestyle</option>
+            <option value="6020">Medical</option>
+            <option value="6011">Music</option>
+            <option value="6010">Navigation</option>
+            <option value="6009">News</option>
+            <option value="6008">Photo & Video</option>
+            <option value="6007">Productivity</option>
+            <option value="6006">Reference</option>
+            <option value="6024">Shopping</option>
+            <option value="6005">Social Networking</option>
+            <option value="6004">Sports</option>
+            <option value="6003">Travel</option>
+            <option value="6002">Utilities</option>
+            <option value="6001">Weather</option>
+          </select>
+        </div>
       </div>
 
-      <!-- Chart type tabs -->
-      <div class="chart-type-tabs" id="chartTypeTabs">
-        <button class="chart-type-tab active" data-chart="topfree">Top Free</button>
-        <button class="chart-type-tab" data-chart="toppaid">Top Paid</button>
-        <button class="chart-type-tab" data-chart="topgrossing">Top Grossing</button>
-        <button class="chart-type-tab" data-chart="newapps">New Apps</button>
+      <!-- Header -->
+      <div class="tc-header">
+        <h2 class="tc-title">Top Apps &amp; Games</h2>
+        <span class="tc-updated" id="tcUpdated"></span>
       </div>
 
+      <!-- 3-column chart -->
       <div class="top-charts-list" id="topChartsList"></div>
     </section>
 

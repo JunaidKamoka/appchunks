@@ -485,8 +485,9 @@ const API = (() => {
   /**
    * Fetch a single RSS chart feed. Returns array of parsed app objects.
    */
-  async function fetchRSSFeed(feedType, country, limit = 100) {
-    const url = `https://itunes.apple.com/${country}/rss/${feedType}/limit=${limit}/json`;
+  async function fetchRSSFeed(feedType, country, limit = 100, genreId = '') {
+    const genrePart = genreId ? `/genre=${genreId}` : '';
+    const url = `https://itunes.apple.com/${country}/rss/${feedType}/limit=${limit}${genrePart}/json`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`RSS ${feedType} error: ${res.status}`);
     const data = await res.json();
@@ -494,29 +495,27 @@ const API = (() => {
   }
 
   /**
-   * Fetch all Top Charts (Free, Paid, Grossing, New) for a platform.
-   * Returns { topfree: [...], toppaid: [...], topgrossing: [...], newapps: [...], updated: Date }
+   * Fetch all Top Charts (Free, Paid, Grossing) for a platform + optional genre.
+   * Returns { topfree: [...], toppaid: [...], topgrossing: [...], updated: Date }
    * Each list contains up to 100 apps. Cached for 30 minutes.
    */
-  async function fetchTopCharts(platform, country) {
-    const cacheKey = `charts:${platform}:${country}`;
+  async function fetchTopCharts(platform, country, genreId = '') {
+    const cacheKey = `charts:${platform}:${country}:${genreId}`;
     if (_chartsCache[cacheKey]) return _chartsCache[cacheKey];
 
     const feeds = CHART_FEEDS[platform] || CHART_FEEDS.ios;
 
-    // Fetch all 4 feeds in parallel
-    const [topfree, toppaid, topgrossing, newapps] = await Promise.all([
-      fetchRSSFeed(feeds.topfree, country).catch(() => []),
-      fetchRSSFeed(feeds.toppaid, country).catch(() => []),
-      fetchRSSFeed(feeds.topgrossing, country).catch(() => []),
-      fetchRSSFeed(feeds.newapps, country).catch(() => []),
+    // Fetch all 3 feeds in parallel
+    const [topfree, toppaid, topgrossing] = await Promise.all([
+      fetchRSSFeed(feeds.topfree, country, 100, genreId).catch(() => []),
+      fetchRSSFeed(feeds.toppaid, country, 100, genreId).catch(() => []),
+      fetchRSSFeed(feeds.topgrossing, country, 100, genreId).catch(() => []),
     ]);
 
     const result = {
       topfree,
       toppaid,
       topgrossing,
-      newapps,
       updated: new Date(),
     };
 
