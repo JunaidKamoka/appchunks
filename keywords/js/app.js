@@ -814,8 +814,9 @@
   }
 
   // ── TRENDING VIEW ─────────────────────────────────────────────────
-  function renderTrendingView() {
-    const trending = API.getTrending(state.platform, state.country);
+  async function renderTrendingView() {
+    els.trendingGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)"><div class="spinner" style="margin:0 auto 12px"></div>Loading live trends…</div>`;
+    const trending = await API.getTrending(state.platform, state.country);
     els.trendingGrid.innerHTML = trending.map(item => {
       const diff = API.difficultyLabel(item.difficulty);
       return `

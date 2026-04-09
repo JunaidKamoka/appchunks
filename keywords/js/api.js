@@ -345,11 +345,99 @@ const API = (() => {
     }).sort((a, b) => b.volume - a.volume);
   }
 
+  // Cache for live trending data: key = "platform:country"
+  const _trendingCache = {};
+
   /**
-   * Generate trending keywords for a platform
+   * Fetch live trending keywords from Apple's Top Free Apps RSS feed.
+   * Extracts keywords from top app names + categories.
+   * Falls back to static list on error.
    */
-  function generateTrending(platform, country) {
-    // Platform-specific trending — reflects real App Store category leaders
+  async function fetchLiveTrending(platform, country) {
+    const cacheKey = `${platform}:${country}`;
+    if (_trendingCache[cacheKey]) return _trendingCache[cacheKey];
+
+    const RSS_URLS = {
+      ios:     `https://itunes.apple.com/${country}/rss/topfreeapplications/limit=100/json`,
+      ipad:    `https://itunes.apple.com/${country}/rss/topfreeipadapplications/limit=100/json`,
+      macos:   `https://itunes.apple.com/${country}/rss/topfreemacapplications/limit=100/json`,
+      android: `https://itunes.apple.com/${country}/rss/topfreeapplications/limit=100/json`,
+    };
+
+    const stopWords = new Set([
+      'the','a','an','and','or','for','with','by','to','in','of','on','at','is',
+      'app','apps','free','pro','plus','lite','hd','ai','my','your','new','best',
+      'top','no','go','get','now','all','&','-','–'
+    ]);
+
+    const url = RSS_URLS[platform] || RSS_URLS.ios;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
+    const data = await res.json();
+
+    const entries = data?.feed?.entry || [];
+    const seen = new Set();
+    const keywords = [];
+
+    const T_VOL  = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
+    const T_DIFF = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
+    const tVol  = T_VOL[platform] || 1;
+    const tDiff = T_DIFF[platform] || 1;
+
+    entries.forEach((entry, chartRank) => {
+      const name     = (entry['im:name']?.label || '').toLowerCase();
+      const category = (entry.category?.attributes?.label || '').toLowerCase();
+
+      // Extract 1-3 word phrases from the app name
+      const words = name.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+
+      const candidates = [];
+      if (words.length >= 2) candidates.push(words.slice(0, 2).join(' '));
+      if (words.length >= 1) candidates.push(words[0] + (category ? ` ${category.split(' ')[0]}` : ''));
+      if (category && !seen.has(category)) candidates.push(category);
+
+      for (const kw of candidates) {
+        if (!kw || kw.length < 4 || seen.has(kw)) continue;
+        seen.add(kw);
+
+        const s  = hashStr(kw + platform + country + chartRank);
+        const s2 = hashStr(kw + country);
+        // Volume decreases with chart rank; top chart = high volume
+        const rankBoost = Math.max(0.1, 1 - chartRank / entries.length);
+        const vol  = Math.max(500, Math.round((80000 + lcg(s) * 600000) * tVol * rankBoost));
+        const spike = Math.round(5 + rankBoost * 100 + lcg(s2) * 40);
+        const diff  = Math.min(97, Math.round((30 + lcg(s+5) * 50) * tDiff));
+
+        keywords.push({
+          keyword:    kw,
+          volume:     vol,
+          difficulty: diff,
+          spike,
+          chance: Math.max(3, Math.min(97, Math.round(100 - diff * 0.7 + lcg(s2+2) * 20))),
+        });
+
+        if (keywords.length >= 20) break;
+      }
+      if (keywords.length >= 20) return;
+    });
+
+    // Sort by spike (trending momentum) and assign ranks
+    const result = keywords
+      .sort((a, b) => b.spike - a.spike)
+      .slice(0, 20)
+      .map((item, i) => ({ ...item, rank: i + 1 }));
+
+    // Cache for 30 minutes
+    _trendingCache[cacheKey] = result;
+    setTimeout(() => delete _trendingCache[cacheKey], 30 * 60 * 1000);
+
+    return result;
+  }
+
+  /**
+   * Static fallback trending list (used when RSS fetch fails)
+   */
+  function generateTrendingFallback(platform, country) {
     const TRENDING = {
       ios: [
         'ai assistant', 'photo editor', 'vpn free', 'workout tracker',
@@ -381,10 +469,9 @@ const API = (() => {
       ],
     };
     const keywords = TRENDING[platform] || TRENDING.ios;
-
     const T_VOL  = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
     const T_DIFF = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
-    const tVol  = T_VOL[platform]  || 1;
+    const tVol  = T_VOL[platform] || 1;
     const tDiff = T_DIFF[platform] || 1;
 
     return keywords.map((kw, i) => {
@@ -442,8 +529,13 @@ const API = (() => {
     return { apps, metrics, related, keyword, platform, country, isRealData };
   }
 
-  function getTrending(platform, country) {
-    return generateTrending(platform, country);
+  async function getTrending(platform, country) {
+    try {
+      return await fetchLiveTrending(platform, country);
+    } catch (e) {
+      console.warn('Live trending fetch failed, using fallback', e);
+      return generateTrendingFallback(platform, country);
+    }
   }
 
   /**
