@@ -47,7 +47,7 @@
     sidebar:        $('sidebar'),
     relatedTableBody: $('relatedTableBody'),
     appsList:       $('appsList'),
-    trendingGrid:   $('trendingGrid'),
+    topChartsList:  $('topChartsList'),
     competitorInput:$('competitorInput'),
     competitorSearchBtn: $('competitorSearchBtn'),
     competitorResults: $('competitorResults'),
@@ -776,7 +776,7 @@
           ${others.map(a => `
             <div class="dev-app-card" data-appid="${escHtml(a.id)}" style="flex-shrink:0;width:90px;text-align:center;cursor:pointer">
               ${a.icon ? `<img src="${escHtml(a.icon)}" style="width:50px;height:50px;border-radius:12px;margin-bottom:4px" loading="lazy" />` : `<div style="width:50px;height:50px;border-radius:12px;background:var(--bg-card);margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${appEmoji(a.category)}</div>`}
-              <div style="font-size:.7rem;color:var(--text);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escHtml(a.name)}</div>
+              <div style="font-size:.7rem;color:var(--text-primary);line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escHtml(a.name)}</div>
             </div>
           `).join('')}
         </div>`;

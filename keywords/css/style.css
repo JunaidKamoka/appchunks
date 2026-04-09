@@ -9,9 +9,11 @@
   --bg-elevated:   #161616;
   --bg-hover:      #1c1c1c;
   --bg-active:     #222222;
+  --bg-card:       #111111;
 
   --border:        rgba(255,255,255,0.07);
   --border-bright: rgba(255,255,255,0.14);
+  --border-light:  rgba(255,255,255,0.04);
 
   --text-primary:  #ffffff;
   --text-secondary:#909090;
@@ -897,7 +899,7 @@ main > section { flex: 1; padding: 32px 28px; }
   cursor: pointer;
   transition: all 0.15s;
 }
-.chart-type-tab:hover { border-color: var(--accent); color: var(--text); }
+.chart-type-tab:hover { border-color: var(--accent); color: var(--text-primary); }
 .chart-type-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 .top-charts-columns {
@@ -926,7 +928,7 @@ main > section { flex: 1; padding: 32px 28px; }
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border-light, rgba(255,255,255,0.04));
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: background 0.12s;
 }
