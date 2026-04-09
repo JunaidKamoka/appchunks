@@ -413,23 +413,23 @@ const API = (() => {
 
     if (platform !== 'android') {
       try {
-        const raw = await searchITunes(keyword, country, platform, 25);
+        const raw = await searchITunes(keyword, country, platform, 200);
         rawResultCount = raw.length;
         apps = raw.map((r, i) => normalizeITunesApp(r, i + 1));
         isRealData = apps.length > 0;
       } catch (e) {
         console.warn('iTunes API failed, using estimated data', e);
-        apps = generateAndroidApps(keyword, country, 20).map(a => ({ ...a, platform }));
+        apps = generateAndroidApps(keyword, country, 200).map(a => ({ ...a, platform }));
         rawResultCount = apps.length;
       }
     } else {
-      apps = generateAndroidApps(keyword, country, 25);
+      apps = generateAndroidApps(keyword, country, 200);
       rawResultCount = apps.length;
     }
 
     // If API returned too few results, keep what we have (don't replace with fake data)
     if (apps.length === 0) {
-      apps = generateAndroidApps(keyword, country, 15).map(a => ({ ...a, platform }));
+      apps = generateAndroidApps(keyword, country, 200).map(a => ({ ...a, platform }));
       rawResultCount = apps.length;
     }
 
