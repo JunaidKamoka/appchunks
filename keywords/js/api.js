@@ -426,150 +426,103 @@ const API = (() => {
     }).sort((a, b) => b.volume - a.volume);
   }
 
-  // Cache for live trending data: key = "platform:country"
-  const _trendingCache = {};
+  // ── TOP CHARTS (RSS) ────────────────────────────────────────────────
+  // Apple RSS feeds: max 100 per feed, Mac feeds return 400 (unsupported).
+  // Fetches Free, Paid, Grossing, and New charts simultaneously.
+
+  const _chartsCache = {};
+
+  const CHART_FEEDS = {
+    ios: {
+      topfree:      'topfreeapplications',
+      toppaid:      'toppaidapplications',
+      topgrossing:  'topgrossingapplications',
+      newapps:      'newfreeapplications',
+    },
+    ipad: {
+      topfree:      'topfreeipadapplications',
+      toppaid:      'toppaidapplications',
+      topgrossing:  'topgrossingipadapplications',
+      newapps:      'newfreeapplications',
+    },
+    // macOS RSS feeds are unsupported (HTTP 400) — use iOS as fallback
+    macos: {
+      topfree:      'topfreeapplications',
+      toppaid:      'toppaidapplications',
+      topgrossing:  'topgrossingapplications',
+      newapps:      'newfreeapplications',
+    },
+    android: {
+      topfree:      'topfreeapplications',
+      toppaid:      'toppaidapplications',
+      topgrossing:  'topgrossingapplications',
+      newapps:      'newfreeapplications',
+    },
+  };
 
   /**
-   * Fetch live trending keywords from Apple's Top Free Apps RSS feed.
-   * Extracts keywords from top app names + categories.
-   * Falls back to static list on error.
+   * Parse an RSS feed entry into a lightweight app object.
    */
-  async function fetchLiveTrending(platform, country) {
-    const cacheKey = `${platform}:${country}`;
-    if (_trendingCache[cacheKey]) return _trendingCache[cacheKey];
-
-    const RSS_URLS = {
-      ios:     `https://itunes.apple.com/${country}/rss/topfreeapplications/limit=100/json`,
-      ipad:    `https://itunes.apple.com/${country}/rss/topfreeipadapplications/limit=100/json`,
-      macos:   `https://itunes.apple.com/${country}/rss/topfreemacapplications/limit=100/json`,
-      android: `https://itunes.apple.com/${country}/rss/topfreeapplications/limit=100/json`,
+  function parseRSSEntry(entry, rank) {
+    const images = entry['im:image'] || [];
+    const icon = images.length > 0 ? images[images.length - 1].label : '';
+    const price = entry['im:price']?.attributes?.amount || '0';
+    return {
+      rank,
+      id:        entry.id?.attributes?.['im:id'] || '',
+      name:      entry['im:name']?.label || 'Unknown',
+      developer: entry['im:artist']?.label || 'Unknown',
+      icon,
+      category:  entry.category?.attributes?.label || '',
+      price:     parseFloat(price),
+      isFree:    parseFloat(price) === 0,
+      url:       entry.link?.attributes?.href || '',
+      releaseDate: entry['im:releaseDate']?.label || '',
+      summary:   entry.summary?.label || '',
     };
-
-    const stopWords = new Set([
-      'the','a','an','and','or','for','with','by','to','in','of','on','at','is',
-      'app','apps','free','pro','plus','lite','hd','ai','my','your','new','best',
-      'top','no','go','get','now','all','&','-','–'
-    ]);
-
-    const url = RSS_URLS[platform] || RSS_URLS.ios;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
-    const data = await res.json();
-
-    const entries = data?.feed?.entry || [];
-    const seen = new Set();
-    const keywords = [];
-
-    const T_VOL  = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
-    const T_DIFF = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
-    const tVol  = T_VOL[platform] || 1;
-    const tDiff = T_DIFF[platform] || 1;
-
-    entries.forEach((entry, chartRank) => {
-      const name     = (entry['im:name']?.label || '').toLowerCase();
-      const category = (entry.category?.attributes?.label || '').toLowerCase();
-
-      // Extract 1-3 word phrases from the app name
-      const words = name.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
-
-      const candidates = [];
-      if (words.length >= 2) candidates.push(words.slice(0, 2).join(' '));
-      if (words.length >= 1) candidates.push(words[0] + (category ? ` ${category.split(' ')[0]}` : ''));
-      if (category && !seen.has(category)) candidates.push(category);
-
-      for (const kw of candidates) {
-        if (!kw || kw.length < 4 || seen.has(kw)) continue;
-        seen.add(kw);
-
-        const s  = hashStr(kw + platform + country + chartRank);
-        const s2 = hashStr(kw + country);
-        // Volume decreases with chart rank; top chart = high volume
-        const rankBoost = Math.max(0.1, 1 - chartRank / entries.length);
-        const vol  = Math.max(500, Math.round((80000 + lcg(s) * 600000) * tVol * rankBoost));
-        const spike = Math.round(5 + rankBoost * 100 + lcg(s2) * 40);
-        const diff  = Math.min(97, Math.round((30 + lcg(s+5) * 50) * tDiff));
-
-        keywords.push({
-          keyword:    kw,
-          volume:     vol,
-          difficulty: diff,
-          spike,
-          chance: Math.max(3, Math.min(97, Math.round(100 - diff * 0.7 + lcg(s2+2) * 20))),
-        });
-
-        if (keywords.length >= 20) break;
-      }
-      if (keywords.length >= 20) return;
-    });
-
-    // Sort by spike (trending momentum) and assign ranks
-    const result = keywords
-      .sort((a, b) => b.spike - a.spike)
-      .slice(0, 20)
-      .map((item, i) => ({ ...item, rank: i + 1 }));
-
-    // Cache for 30 minutes
-    _trendingCache[cacheKey] = result;
-    setTimeout(() => delete _trendingCache[cacheKey], 30 * 60 * 1000);
-
-    return result;
   }
 
   /**
-   * Static fallback trending list (used when RSS fetch fails)
+   * Fetch a single RSS chart feed. Returns array of parsed app objects.
    */
-  function generateTrendingFallback(platform, country) {
-    const TRENDING = {
-      ios: [
-        'ai assistant', 'photo editor', 'vpn free', 'workout tracker',
-        'sleep sounds', 'pdf scanner', 'language learning', 'video editor',
-        'budget tracker', 'meditation app', 'recipe finder', 'password manager',
-        'screen recorder', 'qr code scanner', 'flashcard maker', 'habit tracker',
-        'stock market', 'weather radar', 'podcast player', 'note taking app',
-      ],
-      ipad: [
-        'drawing app', 'pdf editor', 'note taking', 'digital planner',
-        'video editing', 'reading app', 'spreadsheet app', 'presentation maker',
-        'annotate pdf', 'handwriting app', 'calendar planner', 'music production',
-        'photo editing', 'comic reader', 'language learning', 'coding app',
-        'document scanner', 'diagram tool', 'whiteboard app', 'split view browser',
-      ],
-      macos: [
-        'window manager', 'markdown editor', 'clipboard manager', 'screen capture',
-        'password manager', 'email client', 'video converter', 'pdf editor',
-        'time tracker', 'task manager', 'mind mapping', 'database app',
-        'text expander', 'ftp client', 'system cleaner', 'menubar app',
-        'code editor', 'vpn client', 'file manager', 'photo editor mac',
-      ],
-      android: [
-        'ai assistant', 'photo editor', 'vpn free', 'workout tracker',
-        'sleep sounds', 'pdf scanner', 'language learning', 'video editor',
-        'budget tracker', 'meditation', 'recipe app', 'password manager',
-        'screen recorder', 'qr scanner', 'flashcard maker', 'habit tracker',
-        'stock market', 'weather app', 'podcast player', 'notes app',
-      ],
-    };
-    const keywords = TRENDING[platform] || TRENDING.ios;
-    const T_VOL  = { ios: 1.00, ipad: 0.20, macos: 0.08, android: 0.80 };
-    const T_DIFF = { ios: 1.00, ipad: 0.76, macos: 0.52, android: 0.92 };
-    const tVol  = T_VOL[platform] || 1;
-    const tDiff = T_DIFF[platform] || 1;
+  async function fetchRSSFeed(feedType, country, limit = 100) {
+    const url = `https://itunes.apple.com/${country}/rss/${feedType}/limit=${limit}/json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`RSS ${feedType} error: ${res.status}`);
+    const data = await res.json();
+    return (data?.feed?.entry || []).map((e, i) => parseRSSEntry(e, i + 1));
+  }
 
-    return keywords.map((kw, i) => {
-      const s  = hashStr(kw + platform + country + i);
-      const s2 = hashStr(kw + country);
-      const vol   = Math.max(100, Math.round((30000 + lcg(s) * 800000) * tVol));
-      const spike = Math.round(10 + lcg(s2) * 120);
-      const diff  = Math.min(97, Math.round((20 + lcg(s+5) * 70) * tDiff));
-      return {
-        rank: i + 1,
-        keyword: kw,
-        volume: vol,
-        difficulty: diff,
-        spike,
-        chance: Math.max(3, Math.min(97, Math.round(100 - diff * 0.7 + lcg(s2+2) * 25))),
-      };
-    }).sort((a, b) => b.spike - a.spike);
+  /**
+   * Fetch all Top Charts (Free, Paid, Grossing, New) for a platform.
+   * Returns { topfree: [...], toppaid: [...], topgrossing: [...], newapps: [...], updated: Date }
+   * Each list contains up to 100 apps. Cached for 30 minutes.
+   */
+  async function fetchTopCharts(platform, country) {
+    const cacheKey = `charts:${platform}:${country}`;
+    if (_chartsCache[cacheKey]) return _chartsCache[cacheKey];
+
+    const feeds = CHART_FEEDS[platform] || CHART_FEEDS.ios;
+
+    // Fetch all 4 feeds in parallel
+    const [topfree, toppaid, topgrossing, newapps] = await Promise.all([
+      fetchRSSFeed(feeds.topfree, country).catch(() => []),
+      fetchRSSFeed(feeds.toppaid, country).catch(() => []),
+      fetchRSSFeed(feeds.topgrossing, country).catch(() => []),
+      fetchRSSFeed(feeds.newapps, country).catch(() => []),
+    ]);
+
+    const result = {
+      topfree,
+      toppaid,
+      topgrossing,
+      newapps,
+      updated: new Date(),
+    };
+
+    _chartsCache[cacheKey] = result;
+    setTimeout(() => delete _chartsCache[cacheKey], 30 * 60 * 1000);
+    return result;
   }
 
   // ── MAIN PUBLIC API ────────────────────────────────────────────────
@@ -610,13 +563,8 @@ const API = (() => {
     return { apps, metrics, related, keyword, platform, country, isRealData };
   }
 
-  async function getTrending(platform, country) {
-    try {
-      return await fetchLiveTrending(platform, country);
-    } catch (e) {
-      console.warn('Live trending fetch failed, using fallback', e);
-      return generateTrendingFallback(platform, country);
-    }
+  async function getTopCharts(platform, country) {
+    return fetchTopCharts(platform, country);
   }
 
   /**
@@ -1035,7 +983,7 @@ const API = (() => {
     lookupByBundleId,
     lookupDeveloper,
     fetchGenres,
-    getTrending,
+    getTopCharts,
     generateASOMetadata,
     estimateAppRevenue,
     formatVolume,

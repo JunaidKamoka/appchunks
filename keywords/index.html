@@ -359,13 +359,22 @@
       </div>
     </section>
 
-    <!-- ── TRENDING VIEW ── -->
+    <!-- ── TRENDING / TOP CHARTS VIEW ── -->
     <section class="hidden" id="view-trending">
       <div class="view-header">
-        <h2>Trending Keywords</h2>
-        <p>Keywords gaining traction right now on <span id="trendingPlatformLabel">iOS</span></p>
+        <h2>Top Charts</h2>
+        <p>Live App Store rankings on <span id="trendingPlatformLabel">iOS</span></p>
       </div>
-      <div class="trending-grid" id="trendingGrid"></div>
+
+      <!-- Chart type tabs -->
+      <div class="chart-type-tabs" id="chartTypeTabs">
+        <button class="chart-type-tab active" data-chart="topfree">Top Free</button>
+        <button class="chart-type-tab" data-chart="toppaid">Top Paid</button>
+        <button class="chart-type-tab" data-chart="topgrossing">Top Grossing</button>
+        <button class="chart-type-tab" data-chart="newapps">New Apps</button>
+      </div>
+
+      <div class="top-charts-list" id="topChartsList"></div>
     </section>
 
     <!-- ── COMPETITORS VIEW ── -->

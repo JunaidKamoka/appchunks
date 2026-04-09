@@ -895,43 +895,108 @@
     showToast('ASO metadata generated!', 'success');
   }
 
-  // ── TRENDING VIEW ─────────────────────────────────────────────────
-  async function renderTrendingView() {
-    els.trendingGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)"><div class="spinner" style="margin:0 auto 12px"></div>Loading live trends…</div>`;
-    const trending = await API.getTrending(state.platform, state.country);
-    els.trendingGrid.innerHTML = trending.map(item => {
-      const diff = API.difficultyLabel(item.difficulty);
-      return `
-      <div class="trending-card" data-kw="${escHtml(item.keyword)}">
-        <div class="trending-rank">#${item.rank} Trending</div>
-        <div class="trending-kw">${escHtml(item.keyword)}</div>
-        <div class="trending-meta">
-          <div class="trending-stat">
-            <span class="trending-stat-label">Volume</span>
-            <span class="trending-stat-val">${API.formatVolume(item.volume)}</span>
-          </div>
-          <div class="trending-stat">
-            <span class="trending-stat-label">Difficulty</span>
-            <span class="trending-stat-val ${diff.cls}">${item.difficulty}/100</span>
-          </div>
-          <div class="trending-stat">
-            <span class="trending-stat-label">Chance</span>
-            <span class="trending-stat-val text-green">${item.chance}/100</span>
-          </div>
-        </div>
-        <div class="trending-spike">▲ +${item.spike}% this week</div>
-      </div>`;
-    }).join('');
+  // ── TOP CHARTS VIEW ────────────────────────────────────────────────
+  let _topChartsData = null;
 
-    $$('.trending-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const kw = card.dataset.kw;
-        els.keywordInput.value = kw;
-        switchView('search');
-        $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === 'search'));
-        doSearch(kw);
+  async function renderTrendingView() {
+    const listEl = $('topChartsList');
+    listEl.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted)"><div class="spinner" style="margin:0 auto 12px"></div>Loading live charts…</div>`;
+
+    try {
+      _topChartsData = await API.getTopCharts(state.platform, state.country);
+      renderTopChartsColumns(_topChartsData);
+    } catch (e) {
+      listEl.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted)">Failed to load charts. Please try again.</div>`;
+    }
+
+    // Bind chart type tabs
+    $$('#chartTypeTabs .chart-type-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        $$('#chartTypeTabs .chart-type-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        if (_topChartsData) renderTopChartsColumns(_topChartsData, tab.dataset.chart);
       });
     });
+  }
+
+  function renderTopChartsColumns(data, activeTab = 'topfree') {
+    const listEl = $('topChartsList');
+    const updated = data.updated ? new Date(data.updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+    if (activeTab === 'topfree' || activeTab === 'toppaid' || activeTab === 'topgrossing' || activeTab === 'newapps') {
+      // 3-column layout: Free | Paid | Grossing (like Appfigures)
+      const cols = [
+        { title: 'Free',     key: 'topfree',     apps: data.topfree || [] },
+        { title: 'Paid',     key: 'toppaid',      apps: data.toppaid || [] },
+        { title: 'Grossing', key: 'topgrossing',  apps: data.topgrossing || [] },
+      ];
+
+      if (activeTab === 'newapps') {
+        // For New Apps tab, show single list
+        listEl.innerHTML = `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+            <span style="font-size:.75rem;color:var(--text-muted)">Updated ${updated}</span>
+          </div>
+          <div class="top-charts-single">
+            <div class="top-chart-column">
+              <div class="top-chart-col-header">New Apps</div>
+              ${renderChartAppList(data.newapps || [])}
+            </div>
+          </div>`;
+      } else {
+        listEl.innerHTML = `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+            <span style="font-size:.75rem;color:var(--text-muted)">Updated ${updated}</span>
+          </div>
+          <div class="top-charts-columns">
+            ${cols.map(col => `
+              <div class="top-chart-column">
+                <div class="top-chart-col-header">${col.title}</div>
+                ${renderChartAppList(col.apps)}
+              </div>
+            `).join('')}
+          </div>`;
+      }
+    }
+
+    // Bind clicks on chart app rows
+    $$('.chart-app-row').forEach(row => {
+      row.addEventListener('click', async () => {
+        const appId = row.dataset.appid;
+        const appName = row.dataset.appname;
+        if (appId) {
+          try {
+            const app = await API.lookupById(appId, state.country);
+            if (app) { openAppModal(app); return; }
+          } catch(e) {}
+        }
+        // Fallback: search by name
+        if (appName) {
+          els.keywordInput.value = appName;
+          switchView('search');
+          $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === 'search'));
+          doSearch(appName);
+        }
+      });
+    });
+  }
+
+  function renderChartAppList(apps) {
+    if (!apps.length) return '<div style="padding:20px;color:var(--text-muted);text-align:center">No data available</div>';
+    return apps.map(app => {
+      const priceLabel = app.isFree ? '<span style="color:var(--green)">Free</span>' : `<span style="color:var(--yellow)">$${app.price.toFixed(2)}</span>`;
+      return `
+      <div class="chart-app-row" data-appid="${escHtml(app.id)}" data-appname="${escHtml(app.name)}">
+        <div class="chart-app-rank">${app.rank}</div>
+        ${app.icon ? `<img class="chart-app-icon" src="${escHtml(app.icon)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
+        <div class="chart-app-icon-ph" ${app.icon ? 'style="display:none"' : ''}>${appEmoji(app.category)}</div>
+        <div class="chart-app-info">
+          <div class="chart-app-name">${escHtml(app.name)}</div>
+          <div class="chart-app-dev">${escHtml(app.developer)}</div>
+        </div>
+        <div class="chart-app-price">${priceLabel}</div>
+      </div>`;
+    }).join('');
   }
 
   // ── COMPETITOR SEARCH ─────────────────────────────────────────────

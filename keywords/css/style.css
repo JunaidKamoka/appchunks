@@ -879,6 +879,116 @@ main > section { flex: 1; padding: 32px 28px; }
   gap: 4px;
 }
 
+/* TOP CHARTS */
+.chart-type-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.chart-type-tab {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chart-type-tab:hover { border-color: var(--accent); color: var(--text); }
+.chart-type-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.top-charts-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.top-charts-single {
+  max-width: 500px;
+}
+.top-chart-column {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.top-chart-col-header {
+  padding: 14px 16px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.chart-app-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,0.04));
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.chart-app-row:last-child { border-bottom: none; }
+.chart-app-row:hover { background: rgba(255,255,255,0.03); }
+.chart-app-rank {
+  width: 24px;
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.chart-app-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.chart-app-icon-ph {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.chart-app-info {
+  flex: 1;
+  min-width: 0;
+}
+.chart-app-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chart-app-dev {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chart-app-price {
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .top-charts-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* COMPETITOR */
 .competitor-search-wrap {
   display: flex;
