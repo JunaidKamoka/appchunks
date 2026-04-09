@@ -790,7 +790,7 @@ const API = (() => {
    */
   function estimateMonthlyDownloads(app) {
     const ratingCount = app.ratingCount || 0;
-    if (ratingCount <= 0) return 200;
+    if (ratingCount <= 0) return 50;
 
     // Calculate app age in months from release date
     let ageMonths = 36;
@@ -838,12 +838,15 @@ const API = (() => {
       else if (daysSinceUpdate < 90) downloads *= 1.05;
     }
 
-    // ── Minimum floor for active apps ──
-    const minFloor = (langCount > 15 && ageMonths < 24)
-      ? Math.max(5000, langCount * 300)
-      : (langCount > 10)
-        ? Math.max(2000, langCount * 100)
-        : 500;
+    // ── Minimum floor ──
+    // Only grant language-based floor to apps with real traction;
+    // tiny apps with many languages (clones) shouldn't be inflated.
+    let minFloor = 100;
+    if (ratingCount > 10000 && langCount > 15) {
+      minFloor = Math.max(2000, langCount * 100);
+    } else if (ratingCount > 1000 && langCount > 10) {
+      minFloor = 500;
+    }
 
     return Math.max(minFloor, Math.round(downloads));
   }
