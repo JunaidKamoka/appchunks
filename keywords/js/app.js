@@ -103,7 +103,17 @@
     els.countrySelect.addEventListener('change', () => {
       state.country = els.countrySelect.value;
       if (state.keyword) doSearch(state.keyword);
+      if (currentView() === 'trending') renderTrendingView();
     });
+
+    // Top Charts category filter
+    const tcCatSel = $('tcCategorySelect');
+    if (tcCatSel) {
+      tcCatSel.addEventListener('change', () => {
+        _tcGenre = tcCatSel.value;
+        renderTrendingView();
+      });
+    }
 
     // Sidebar nav
     $$('.nav-item').forEach(item => {
@@ -901,16 +911,6 @@
     const listEl = $('topChartsList');
     const updatedEl = $('tcUpdated');
     listEl.innerHTML = `<div class="tc-loading"><div class="spinner"></div>Loading live charts…</div>`;
-
-    // Bind category select (once)
-    const catSel = $('tcCategorySelect');
-    if (catSel && !catSel._bound) {
-      catSel._bound = true;
-      catSel.addEventListener('change', () => {
-        _tcGenre = catSel.value;
-        renderTrendingView();
-      });
-    }
 
     try {
       const data = await API.getTopCharts(state.platform, state.country, _tcGenre);
