@@ -443,8 +443,12 @@ const API = (() => {
       toppaid:      'toppaidipadapplications',
       topgrossing:  'topgrossingipadapplications',
     },
-    // macOS and Android RSS feeds are unsupported — null signals unavailable
-    macos:   null,
+    macos: {
+      topfree:      'topfreemacapps',
+      toppaid:      'toppaidmacapps',
+      topgrossing:  'topgrossingmacapps',
+    },
+    // Android: no Apple data
     android: null,
   };
 
@@ -586,17 +590,9 @@ const API = (() => {
     const cacheKey = `charts:${platform}:${country}:${genreId}`;
     if (_chartsCache[cacheKey]) return _chartsCache[cacheKey];
 
-    // macOS: build charts via iTunes Search API (RSS dead)
-    if (platform === 'macos') {
-      const result = await fetchMacCharts(country, genreId);
-      _chartsCache[cacheKey] = result;
-      setTimeout(() => delete _chartsCache[cacheKey], 30 * 60 * 1000);
-      return result;
-    }
-
     const feeds = CHART_FEEDS[platform];
 
-    // Android: no Apple RSS feed available
+    // Android: no Apple data
     if (!feeds) {
       const result = {
         topfree: [], toppaid: [], topgrossing: [],
