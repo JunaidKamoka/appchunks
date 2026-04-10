@@ -912,6 +912,18 @@
     const updatedEl = $('tcUpdated');
     listEl.innerHTML = `<div class="tc-loading"><div class="spinner"></div>Loading live charts…</div>`;
 
+    // Update title based on selected category
+    const titleEl = $('tcTitle');
+    if (titleEl) {
+      const catSel = $('tcCategorySelect');
+      const catName = catSel ? catSel.options[catSel.selectedIndex]?.text : '';
+      if (!_tcGenre || catName === 'Top Overall') {
+        titleEl.textContent = 'Top Apps & Games';
+      } else {
+        titleEl.textContent = `Top ${catName} Apps`;
+      }
+    }
+
     try {
       const data = await API.getTopCharts(state.platform, state.country, _tcGenre);
       renderTopChartsColumns(data);
@@ -971,9 +983,9 @@
 
   function renderChartRow(app, colTitle) {
     let priceHtml = '';
-    if (colTitle === 'Paid' && app.price > 0) {
+    if (app.price > 0) {
       priceHtml = `<span class="tc-price">$${app.price.toFixed(2)}</span>`;
-    } else if (colTitle === 'Free') {
+    } else {
       priceHtml = `<span class="tc-price tc-free">Free</span>`;
     }
 
@@ -986,7 +998,7 @@
       <div class="tc-icon-ph" ${app.icon ? 'style="display:none"' : ''}>${appEmoji(app.category)}</div>
       <div class="tc-info">
         <div class="tc-name">${escHtml(app.name)}</div>
-        <div class="tc-dev">${priceHtml ? priceHtml + ' · ' : ''}${escHtml(app.developer)}</div>
+        <div class="tc-dev">${priceHtml} · ${escHtml(app.developer)}</div>
       </div>
     </div>`;
   }
