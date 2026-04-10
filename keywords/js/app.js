@@ -926,8 +926,12 @@
 
     try {
       const data = await API.getTopCharts(state.platform, state.country, _tcGenre);
+      if (data.unavailable) {
+        listEl.innerHTML = `<div class="tc-loading">${data.reason}<br><span style="font-size:.8rem;margin-top:8px;display:block">Switch to iOS or iPad for live chart data.</span></div>`;
+        if (updatedEl) updatedEl.textContent = '';
+        return;
+      }
       renderTopChartsColumns(data);
-      // "Updated X ago"
       if (updatedEl && data.updated) {
         const mins = Math.round((Date.now() - new Date(data.updated).getTime()) / 60000);
         updatedEl.textContent = mins < 2 ? 'Updated just now' : `Updated ${mins} min ago`;

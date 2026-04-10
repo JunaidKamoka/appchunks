@@ -437,27 +437,15 @@ const API = (() => {
       topfree:      'topfreeapplications',
       toppaid:      'toppaidapplications',
       topgrossing:  'topgrossingapplications',
-      newapps:      'newfreeapplications',
     },
     ipad: {
       topfree:      'topfreeipadapplications',
-      toppaid:      'toppaidapplications',
+      toppaid:      'toppaidipadapplications',
       topgrossing:  'topgrossingipadapplications',
-      newapps:      'newfreeapplications',
     },
-    // macOS RSS feeds are unsupported (HTTP 400) — use iOS as fallback
-    macos: {
-      topfree:      'topfreeapplications',
-      toppaid:      'toppaidapplications',
-      topgrossing:  'topgrossingapplications',
-      newapps:      'newfreeapplications',
-    },
-    android: {
-      topfree:      'topfreeapplications',
-      toppaid:      'toppaidapplications',
-      topgrossing:  'topgrossingapplications',
-      newapps:      'newfreeapplications',
-    },
+    // macOS and Android RSS feeds are unsupported — null signals unavailable
+    macos:   null,
+    android: null,
   };
 
   /**
@@ -503,7 +491,21 @@ const API = (() => {
     const cacheKey = `charts:${platform}:${country}:${genreId}`;
     if (_chartsCache[cacheKey]) return _chartsCache[cacheKey];
 
-    const feeds = CHART_FEEDS[platform] || CHART_FEEDS.ios;
+    const feeds = CHART_FEEDS[platform];
+
+    // macOS and Android don't have Apple RSS feeds
+    if (!feeds) {
+      const result = {
+        topfree: [], toppaid: [], topgrossing: [],
+        updated: new Date(),
+        unavailable: true,
+        reason: platform === 'macos'
+          ? 'Mac App Store charts are not available via Apple RSS.'
+          : 'Android charts are not available via Apple RSS.',
+      };
+      _chartsCache[cacheKey] = result;
+      return result;
+    }
 
     // Fetch all 3 feeds in parallel
     const [topfree, toppaid, topgrossing] = await Promise.all([
