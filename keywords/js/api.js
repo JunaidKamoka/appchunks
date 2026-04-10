@@ -562,8 +562,8 @@ const API = (() => {
     return { apps, metrics, related, keyword, platform, country, isRealData };
   }
 
-  async function getTopCharts(platform, country) {
-    return fetchTopCharts(platform, country);
+  async function getTopCharts(platform, country, genreId = '') {
+    return fetchTopCharts(platform, country, genreId);
   }
 
   /**
