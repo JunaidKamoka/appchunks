@@ -482,6 +482,101 @@ const API = (() => {
     return (data?.feed?.entry || []).map((e, i) => parseRSSEntry(e, i + 1));
   }
 
+  // Genre ID → search keywords for Mac Search API fallback
+  const GENRE_SEARCH_TERMS = {
+    '':     ['app', 'pro', 'editor', 'manager', 'studio', 'tool'],
+    '36':   ['app', 'pro', 'editor', 'manager'],
+    '6014': ['game', 'puzzle', 'rpg', 'arcade'],
+    '6018': ['book', 'reader', 'ebook'],
+    '6000': ['business', 'office', 'crm', 'invoice'],
+    '6026': ['developer', 'code', 'editor', 'git'],
+    '6017': ['education', 'learn', 'course', 'study'],
+    '6016': ['entertainment', 'video', 'streaming'],
+    '6015': ['finance', 'budget', 'banking', 'tax'],
+    '6023': ['food', 'recipe', 'cooking'],
+    '6027': ['design', 'graphics', 'photo', 'illustration'],
+    '6013': ['fitness', 'health', 'workout', 'meditation'],
+    '6012': ['lifestyle', 'home', 'planner'],
+    '6020': ['medical', 'health', 'doctor'],
+    '6011': ['music', 'audio', 'player', 'dj'],
+    '6010': ['navigation', 'map', 'gps'],
+    '6009': ['news', 'reader', 'rss'],
+    '6008': ['photo', 'video', 'editor', 'camera'],
+    '6007': ['productivity', 'notes', 'task', 'calendar'],
+    '6006': ['reference', 'dictionary', 'encyclopedia'],
+    '6024': ['shopping', 'store', 'deal'],
+    '6005': ['social', 'chat', 'messenger'],
+    '6004': ['sports', 'football', 'tracker'],
+    '6003': ['travel', 'flight', 'hotel'],
+    '6002': ['utilities', 'cleaner', 'system', 'backup'],
+    '6001': ['weather', 'forecast'],
+  };
+
+  /**
+   * Build Mac App Store charts using iTunes Search API.
+   * Mac RSS feeds are dead, so we search for popular apps and rank by reviews.
+   */
+  async function fetchMacCharts(country, genreId = '') {
+    const terms = GENRE_SEARCH_TERMS[genreId] || GENRE_SEARCH_TERMS[''];
+
+    // Fetch results for multiple terms in parallel, then dedupe
+    const allResults = await Promise.all(
+      terms.map(term =>
+        searchITunes(term, country, 'macos', 50).catch(() => [])
+      )
+    );
+
+    // Dedupe by trackId
+    const seen = new Set();
+    const apps = [];
+    for (const list of allResults) {
+      for (const raw of list) {
+        const id = String(raw.trackId || '');
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        apps.push({
+          id,
+          name:      raw.trackName || 'Unknown',
+          developer: raw.artistName || 'Unknown',
+          icon:      raw.artworkUrl100 || raw.artworkUrl60 || '',
+          category:  raw.primaryGenreName || '',
+          price:     raw.price || 0,
+          isFree:    (raw.price || 0) === 0,
+          rating:    raw.averageUserRating || 0,
+          ratingCount: raw.userRatingCount || 0,
+          url:       raw.trackViewUrl || '',
+        });
+      }
+    }
+
+    // Sort by review count (proxy for popularity)
+    const sorted = [...apps].sort((a, b) => b.ratingCount - a.ratingCount);
+
+    // Free chart: only free apps, by review count
+    const topfree = sorted
+      .filter(a => a.isFree)
+      .slice(0, 100)
+      .map((a, i) => ({ ...a, rank: i + 1 }));
+
+    // Paid chart: only paid apps, by review count
+    const toppaid = sorted
+      .filter(a => !a.isFree && a.price > 0)
+      .slice(0, 100)
+      .map((a, i) => ({ ...a, rank: i + 1 }));
+
+    // Grossing chart: by review_count × (price + ARPU proxy) — closest to revenue ranking
+    const topgrossing = [...apps]
+      .map(a => ({
+        ...a,
+        _grossing: a.ratingCount * (a.isFree ? 0.8 : Math.min(a.price + 0.5, 50)),
+      }))
+      .sort((a, b) => b._grossing - a._grossing)
+      .slice(0, 100)
+      .map((a, i) => ({ ...a, rank: i + 1 }));
+
+    return { topfree, toppaid, topgrossing, updated: new Date() };
+  }
+
   /**
    * Fetch all Top Charts (Free, Paid, Grossing) for a platform + optional genre.
    * Returns { topfree: [...], toppaid: [...], topgrossing: [...], updated: Date }
@@ -491,17 +586,23 @@ const API = (() => {
     const cacheKey = `charts:${platform}:${country}:${genreId}`;
     if (_chartsCache[cacheKey]) return _chartsCache[cacheKey];
 
+    // macOS: build charts via iTunes Search API (RSS dead)
+    if (platform === 'macos') {
+      const result = await fetchMacCharts(country, genreId);
+      _chartsCache[cacheKey] = result;
+      setTimeout(() => delete _chartsCache[cacheKey], 30 * 60 * 1000);
+      return result;
+    }
+
     const feeds = CHART_FEEDS[platform];
 
-    // macOS and Android don't have Apple RSS feeds
+    // Android: no Apple RSS feed available
     if (!feeds) {
       const result = {
         topfree: [], toppaid: [], topgrossing: [],
         updated: new Date(),
         unavailable: true,
-        reason: platform === 'macos'
-          ? 'Mac App Store charts are not available via Apple RSS.'
-          : 'Android charts are not available via Apple RSS.',
+        reason: 'Android charts are not available via Apple RSS.',
       };
       _chartsCache[cacheKey] = result;
       return result;
