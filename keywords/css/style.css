@@ -358,41 +358,6 @@ body.sidebar-open .hamburger-icon span:nth-child(3) {
 }
 .suggestion-chip:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--accent); }
 
-/* BULK */
-.bulk-toggle-wrap { margin-top: 14px; }
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  transition: all 0.15s;
-}
-.btn-ghost:hover { color: var(--text-primary); border-color: var(--border-bright); background: var(--bg-hover); }
-.btn-ghost svg { width: 14px; height: 14px; }
-
-.bulk-input-wrap {
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  text-align: left;
-}
-.bulk-input-wrap textarea {
-  width: 100%;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  color: var(--text-primary);
-  font-size: 0.88rem;
-  resize: vertical;
-}
-.bulk-input-wrap textarea::placeholder { color: var(--text-muted); }
-
 /* ── LOADING ── */
 .loading-state {
   display: flex;
@@ -1312,7 +1277,7 @@ main > section { flex: 1; padding: 32px 28px; }
 }
 
 /* ── BUTTON PRESS EFFECT ── */
-.btn-search, .btn-primary, .btn-ghost {
+.btn-search, .btn-primary {
   transition: all 0.25s cubic-bezier(0.175,0.885,0.32,1.275);
 }
 .btn-search:active, .btn-primary:active { transform: scale(0.95); }
@@ -2185,9 +2150,6 @@ html, body { -webkit-text-size-adjust: 100%; }
   .view-header h2 { font-size: 1.15rem; }
   .view-header    { margin-bottom: 16px; }
 
-  /* ── Bulk ── */
-  .bulk-input-wrap textarea { font-size: 16px; /* prevent iOS zoom */ }
-  .bulk-input-wrap { padding: 12px; }
 }
 
 /* ══════════════════════════════════════════

@@ -31,10 +31,6 @@
     resultsContainer: $('resultsContainer'),
     emptyState:     $('emptyState'),
     countrySelect:  $('countrySelect'),
-    bulkToggle:     $('bulkToggle'),
-    bulkInputWrap:  $('bulkInputWrap'),
-    bulkInput:      $('bulkInput'),
-    bulkSearchBtn:  $('bulkSearchBtn'),
     suggestions:    $('suggestions'),
     saveKeywordBtn: $('saveKeywordBtn'),
     exportBtn:      $('exportBtn'),
@@ -142,12 +138,6 @@
       const dx = e.changedTouches[0].clientX - touchStartX;
       if (dx < -60) closeSidebar();
     }, { passive: true });
-
-    // Bulk toggle
-    els.bulkToggle.addEventListener('click', () => {
-      els.bulkInputWrap.classList.toggle('hidden');
-    });
-    els.bulkSearchBtn.addEventListener('click', doBulkSearch);
 
     // Save keyword
     els.saveKeywordBtn.addEventListener('click', () => {
@@ -330,23 +320,6 @@
   function staticSuggestions(base) {
     const mods = ['free','pro','best','2025','for beginners','advanced','no ads','offline'];
     return mods.map(m => `${base} ${m}`).slice(0, 6);
-  }
-
-  // ── BULK SEARCH ───────────────────────────────────────────────────
-  async function doBulkSearch() {
-    const raw = els.bulkInput.value.trim();
-    if (!raw) { showToast('Enter at least one keyword', 'error'); return; }
-    const keywords = raw.split('\n').map(k => k.trim()).filter(Boolean).slice(0, 20);
-    if (keywords.length === 0) return;
-
-    showToast(`Analyzing ${keywords.length} keywords…`, 'info');
-    els.bulkInputWrap.classList.add('hidden');
-
-    // Search first keyword and show results; queue rest in background
-    await doSearch(keywords[0]);
-    if (keywords.length > 1) {
-      showToast(`Tip: Search each keyword individually for full analysis`, 'info');
-    }
   }
 
   // ── RENDER RESULTS ────────────────────────────────────────────────
