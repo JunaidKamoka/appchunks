@@ -544,6 +544,7 @@ const API = (() => {
     let rawResultCount = 0;
     let isRealData = false;
 
+    // Layer 1: try the live iTunes Search API for Apple platforms
     if (platform !== 'android') {
       try {
         const raw = await searchITunes(keyword, country, platform, 200);
@@ -551,26 +552,46 @@ const API = (() => {
         apps = raw.map((r, i) => normalizeITunesApp(r, i + 1, platform));
         isRealData = apps.length > 0;
       } catch (e) {
-        console.warn('iTunes API failed, using estimated data', e);
+        console.warn('iTunes API failed, will fall back to estimated data', e);
+      }
+    }
+
+    // Layer 2: Android always uses estimated data; other platforms fall here
+    // if the live API returned 0 results or threw.
+    if (apps.length === 0) {
+      try {
         apps = generateAndroidApps(keyword, country, 200).map(a => ({ ...a, platform }));
         rawResultCount = apps.length;
+      } catch (e) {
+        console.warn('Estimated data generator failed', e);
+        apps = [];
       }
-    } else {
-      apps = generateAndroidApps(keyword, country, 200);
-      rawResultCount = apps.length;
     }
 
-    // If API returned too few results, keep what we have (don't replace with fake data)
+    // Layer 3: absolute last resort — synthesize a minimal skeleton so the UI
+    // never crashes on undefined metrics/related.
     if (apps.length === 0) {
-      apps = generateAndroidApps(keyword, country, 200).map(a => ({ ...a, platform }));
-      rawResultCount = apps.length;
+      apps = [];
+      rawResultCount = 0;
     }
 
-    // Calculate metrics from actual app data
-    const metrics = calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount);
+    // Metrics — safe fallback if calculation blows up
+    let metrics;
+    try {
+      metrics = calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount);
+    } catch (e) {
+      console.warn('Metrics calculation failed, using zero fallback', e);
+      metrics = { volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [] };
+    }
 
-    // Generate related keywords from real app data
-    const related = generateRelatedKeywordsFromApps(keyword, platform, country, apps);
+    // Related keywords — safe fallback to empty list
+    let related;
+    try {
+      related = generateRelatedKeywordsFromApps(keyword, platform, country, apps) || [];
+    } catch (e) {
+      console.warn('Related keywords failed', e);
+      related = [];
+    }
 
     return { apps, metrics, related, keyword, platform, country, isRealData };
   }

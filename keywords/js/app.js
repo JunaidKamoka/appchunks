@@ -266,13 +266,11 @@
       const data = await API.searchKeyword(keyword, state.platform, state.country);
       state.results = data;
 
-      // Add to history
-      addToHistory(keyword);
+      try { addToHistory(keyword); } catch (e) { console.warn('history save failed', e); }
 
-      // Render
       renderResults(data);
     } catch (err) {
-      console.error(err);
+      console.error('doSearch failed:', err);
       showToast('Search failed. Please try again.', 'error');
       els.emptyState.classList.remove('hidden');
     } finally {
@@ -320,33 +318,41 @@
   }
 
   // ── RENDER RESULTS ────────────────────────────────────────────────
+  // Each subsection is rendered independently — one section failing (e.g.
+  // due to missing data) must never block the rest of the page from showing.
   function renderResults(data) {
-    const { keyword, metrics, apps, related } = data;
+    const safe = data || {};
+    const keyword = safe.keyword || state.keyword || '';
+    const metrics = safe.metrics || {};
+    const apps    = Array.isArray(safe.apps) ? safe.apps : [];
+    const related = Array.isArray(safe.related) ? safe.related : [];
 
     // Title
-    $('resultKeyword').textContent = `"${keyword}"`;
+    try { $('resultKeyword').textContent = `"${keyword}"`; } catch (e) { console.error('title', e); }
 
     // Check if saved
-    const isSaved = state.saved.some(s => s.keyword === keyword && s.platform === state.platform);
-    els.saveKeywordBtn.classList.toggle('saved', isSaved);
+    try {
+      const isSaved = state.saved.some(s => s.keyword === keyword && s.platform === state.platform);
+      els.saveKeywordBtn.classList.toggle('saved', isSaved);
+    } catch (e) { console.error('saved check', e); }
 
     // Metrics
-    renderMetrics(metrics);
+    try { renderMetrics(metrics); } catch (e) { console.error('renderMetrics', e); }
 
     // Chart
-    renderVolumeChart(metrics.history);
-
-    // Related keywords
-    renderRelatedTable(related);
+    try { renderVolumeChart(metrics.history || []); } catch (e) { console.error('renderVolumeChart', e); }
 
     // Apps
-    renderApps(apps);
+    try { renderApps(apps); } catch (e) { console.error('renderApps', e); }
+
+    // Related keywords
+    try { renderRelatedTable(related); } catch (e) { console.error('renderRelatedTable', e); }
 
     // ASO metadata — auto-generate so the section is useful on first view
-    generateAndRenderASO();
+    try { generateAndRenderASO(); } catch (e) { console.error('generateAndRenderASO', e); }
 
     // Show results
-    try { feather.replace(); } catch(e) {}
+    try { feather.replace(); } catch (e) {}
     els.resultsContainer.classList.remove('hidden');
   }
 
