@@ -351,23 +351,30 @@
   }
 
   function renderMetrics(m) {
-    const diff   = API.difficultyLabel(m.difficulty);
-    const chance = API.chanceLabel(m.chance);
+    // Defensive rounding — guard against any upstream float drift
+    const difficulty = Math.round(Number(m.difficulty) || 0);
+    const chanceVal  = Math.round(Number(m.chance) || 0);
+    const competing  = Math.round(Number(m.competing) || 0);
+    const cpiNum     = Number(m.cpi) || 0;
+    const cpiTxt     = cpiNum < 0.01 ? '0.00' : cpiNum.toFixed(2);
+
+    const diff   = API.difficultyLabel(difficulty);
+    const chance = API.chanceLabel(chanceVal);
     const trend  = API.trendArrow(m.trend);
 
-    $('metricVolumeVal').textContent  = API.formatVolume(m.volume);
+    $('metricVolumeVal').textContent  = API.formatVolume(Math.round(Number(m.volume) || 0));
     $('metricVolumeSub').innerHTML    = `<span class="text-muted">searches/month</span>`;
 
-    $('metricDiffVal').innerHTML      = `<span class="${diff.cls}">${m.difficulty}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
+    $('metricDiffVal').innerHTML      = `<span class="${diff.cls}">${difficulty}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
     $('metricDiffSub').innerHTML      = `<span class="${diff.cls}">${diff.label}</span>`;
 
-    $('metricChanceVal').innerHTML    = `<span class="${chance.cls}">${m.chance}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
+    $('metricChanceVal').innerHTML    = `<span class="${chance.cls}">${chanceVal}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
     $('metricChanceSub').innerHTML    = `<span class="${chance.cls}">${chance.label} chance</span>`;
 
-    $('metricAppsVal').textContent    = API.formatNumber(m.competing);
+    $('metricAppsVal').textContent    = API.formatNumber(competing);
     $('metricAppsSub').textContent    = 'competing apps';
 
-    $('metricCpiVal').textContent     = `$${m.cpi}`;
+    $('metricCpiVal').textContent     = `$${cpiTxt}`;
     $('metricCpiSub').textContent     = 'avg cost per install';
 
     $('metricTrendVal').innerHTML     = `<span class="${trend.cls === 'trend-up' ? 'text-green' : trend.cls === 'trend-down' ? 'text-red' : 'text-muted'}">${trend.text}</span>`;
@@ -463,30 +470,33 @@
 
     $('relatedCount').textContent = related.length;
     $('relatedTableBody').innerHTML = sorted.map(item => {
-      const diff   = API.difficultyLabel(item.difficulty);
-      const chance = API.chanceLabel(item.chance);
+      const difficulty = Math.round(Number(item.difficulty) || 0);
+      const chanceVal  = Math.round(Number(item.chance) || 0);
+      const volume     = Math.round(Number(item.volume) || 0);
+      const diff   = API.difficultyLabel(difficulty);
+      const chance = API.chanceLabel(chanceVal);
       const trend  = API.trendArrow(item.trend);
-      const diffBar = item.difficulty > 60 ? 'bar-red' : item.difficulty > 40 ? 'bar-yellow' : 'bar-green';
-      const chBar   = item.chance < 40 ? 'bar-red' : item.chance < 70 ? 'bar-yellow' : 'bar-green';
+      const diffBar = difficulty > 60 ? 'bar-red' : difficulty > 40 ? 'bar-yellow' : 'bar-green';
+      const chBar   = chanceVal < 40 ? 'bar-red' : chanceVal < 70 ? 'bar-yellow' : 'bar-green';
       return `
       <tr>
         <td><span class="kw-link" data-kw="${escHtml(item.keyword)}">${escHtml(item.keyword)}</span></td>
         <td>
           <div class="score-bar-wrap bar-blue">
-            <div class="score-bar"><div class="score-bar-fill" style="width:${Math.min(100, item.volume/10000)}%;background:var(--blue)"></div></div>
-            <span class="score-num">${API.formatVolume(item.volume)}</span>
+            <div class="score-bar"><div class="score-bar-fill" style="width:${Math.min(100, volume/10000)}%;background:var(--blue)"></div></div>
+            <span class="score-num">${API.formatVolume(volume)}</span>
           </div>
         </td>
         <td>
           <div class="score-bar-wrap ${diffBar}">
-            <div class="score-bar"><div class="score-bar-fill" style="width:${item.difficulty}%"></div></div>
-            <span class="score-num ${diff.cls}">${item.difficulty}</span>
+            <div class="score-bar"><div class="score-bar-fill" style="width:${difficulty}%"></div></div>
+            <span class="score-num ${diff.cls}">${difficulty}</span>
           </div>
         </td>
         <td>
           <div class="score-bar-wrap ${chBar}">
-            <div class="score-bar"><div class="score-bar-fill" style="width:${item.chance}%"></div></div>
-            <span class="score-num ${chance.cls}">${item.chance}</span>
+            <div class="score-bar"><div class="score-bar-fill" style="width:${chanceVal}%"></div></div>
+            <span class="score-num ${chance.cls}">${chanceVal}</span>
           </div>
         </td>
         <td><span class="trend-badge ${trend.cls}">${trend.icon} ${trend.text}</span></td>
@@ -526,7 +536,7 @@
       const platformTag = `<span class="app-tag">${platformLabel(app.platform || state.platform)}</span>`;
       const catTag = `<span class="app-tag">${escHtml(app.category || 'App')}</span>`;
 
-      const revenue = API.estimateAppRevenue(app, app.platform || state.platform);
+      const revenue = API.estimateAppRevenue(app, app.platform || state.platform, state.country);
 
       const iconHtml = app.icon
         ? `<img class="app-icon" src="${escHtml(app.icon)}" alt="${escHtml(app.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
@@ -613,7 +623,7 @@
     const updated  = app.updateDate ? app.updateDate.slice(0, 10) : '—';
     const released = app.releaseDate ? app.releaseDate.slice(0, 10) : '—';
     const desc     = app.fullDescription || app.description || 'No description available.';
-    const revenue  = API.estimateAppRevenue(app, app.platform || state.platform);
+    const revenue  = API.estimateAppRevenue(app, app.platform || state.platform, state.country);
     const bundleId = app.bundleId || '—';
     const langCount = (app.languages && app.languages.length) || 0;
 
@@ -1155,7 +1165,7 @@
       ['=== TOP APPS ==='],
       ['Rank', 'Name', 'Developer', 'Category', 'Rating', 'Reviews', 'Price', 'Has IAP', 'Version', 'Est. Monthly Revenue', 'Est. Monthly Downloads', 'Revenue Model'],
       ...apps.map(a => {
-        const rev = API.estimateAppRevenue(a, a.platform || state.platform);
+        const rev = API.estimateAppRevenue(a, a.platform || state.platform, state.country);
         return [a.rank, a.name, a.developer, a.category, a.rating, a.ratingCount, a.isFree ? 'Free' : `$${a.price}`, a.hasIAP ? 'Yes' : 'No', a.version, `$${rev.monthlyRevenue}`, rev.monthlyDownloads, rev.revenueModel];
       }),
     ];

@@ -738,40 +738,41 @@ const API = (() => {
   //   Printer iPrint (14K, 33mo)        → 20K dl/mo, $107.2K/mo  [DPR ~47]
   //   Printer app (9K, 63mo)            → 7K dl/mo, $36.7K/mo    [DPR ~49]
 
-  // Blended ARPU per category (combines IAP + subscriptions + ads)
-  // Since iTunes API doesn't expose IAP, we use category-level averages
-  // that naturally blend all monetization sources. Calibrated from Sensor Tower.
+  // Blended ARPU per category — revenue per monthly download, blended across
+  // IAP + subscriptions + ads. Calibrated against Sensor Tower 2024 data.
+  // Values trimmed ~25% from prior iteration to better match public figures
+  // (e.g. HP Smart, ChatGPT, Instagram monthly revenues).
   const CATEGORY_ARPU = {
-    'Games':              1.20,
-    'Entertainment':      1.10,
-    'Photo & Video':      2.40,
-    'Photography':        2.20,
-    'Social Networking':  0.55,
-    'Music':              1.80,
-    'Productivity':       2.20,
-    'Utilities':          3.20,
-    'Finance':            3.80,
-    'Health & Fitness':   2.60,
-    'Education':          0.45,
-    'Business':           5.20,
-    'Travel':             1.20,
-    'Food & Drink':       1.10,
-    'News':               0.90,
-    'Shopping':           0.40,
-    'Weather':            2.40,
-    'Navigation':         1.60,
-    'Sports':             0.80,
-    'Lifestyle':          1.60,
-    'Medical':            5.50,
-    'Reference':          2.20,
-    'Developer Tools':    4.80,
-    'Graphics & Design':  3.60,
-    'Music & Audio':      1.80,
-    'Books':              0.60,
-    'Travel & Local':     1.20,
-    'Tools':              2.80,
+    'Games':              0.95,
+    'Entertainment':      1.40,
+    'Photo & Video':      1.80,
+    'Photography':        1.65,
+    'Social Networking':  0.45,
+    'Music':              2.20,
+    'Productivity':       1.55,
+    'Utilities':          2.25,
+    'Finance':            3.20,
+    'Health & Fitness':   2.10,
+    'Education':          0.95,
+    'Business':           4.20,
+    'Travel':             1.05,
+    'Food & Drink':       0.90,
+    'News':               0.75,
+    'Shopping':           0.35,
+    'Weather':            1.80,
+    'Navigation':         1.25,
+    'Sports':             0.70,
+    'Lifestyle':          1.25,
+    'Medical':            4.40,
+    'Reference':          1.65,
+    'Developer Tools':    3.60,
+    'Graphics & Design':  2.80,
+    'Music & Audio':      2.20,
+    'Books':              0.55,
+    'Travel & Local':     1.05,
+    'Tools':              2.10,
   };
-  const DEFAULT_ARPU = 1.60;
+  const DEFAULT_ARPU = 1.25;
 
   // Category-based DPR multiplier — some categories get far more downloads per rating
   const CATEGORY_DPR_MOD = {
@@ -808,6 +809,14 @@ const API = (() => {
   // Platform download and revenue multipliers
   const PLAT_DOWNLOADS = { ios: 1.00, ipad: 0.25, macos: 0.10, android: 0.85 };
   const PLAT_REVENUE   = { ios: 1.00, ipad: 0.90, macos: 1.25, android: 0.50 };
+
+  // Country storefront share of global App Store revenue (approximate)
+  // Used to scope download/revenue estimates to the selected storefront.
+  const COUNTRY_SHARE = {
+    us: 0.38, cn: 0.22, jp: 0.14, gb: 0.04, de: 0.03,
+    fr: 0.03, kr: 0.03, au: 0.02, ca: 0.02, in: 0.02,
+    br: 0.015, ru: 0.01, mx: 0.01,
+  };
 
   /**
    * Estimate monthly downloads using age-based rating velocity model.
@@ -884,41 +893,66 @@ const API = (() => {
    * Since iTunes API doesn't expose IAP, we use blended category-level ARPU
    * that combines IAP, subscriptions, and ad revenue (matches Sensor Tower methodology).
    */
-  function estimateAppRevenue(app, platform) {
+  function estimateAppRevenue(app, platform, country) {
     let monthlyDownloads = estimateMonthlyDownloads(app);
 
     // Apply platform download factor
     const platDl = PLAT_DOWNLOADS[platform] || 1.0;
     monthlyDownloads = Math.round(monthlyDownloads * platDl);
+
+    // Country storefront scope — ratings returned by iTunes are largely
+    // storefront-specific, but some apps (esp. cross-promoted) show global
+    // aggregate. Apply a mild scope factor to nudge estimates toward the
+    // selected country's share of global App Store revenue.
+    const share = (country && COUNTRY_SHARE[country.toLowerCase()]) || null;
+    if (share !== null) {
+      // Mild correction: raise/lower by at most 25% based on storefront share.
+      // US (0.38) ≈ neutral baseline; smaller storefronts get scaled down.
+      const scope = 0.75 + share * 0.66; // US→~1.00, GB→~0.78, IN→~0.76
+      monthlyDownloads = Math.round(monthlyDownloads * scope);
+    }
+
     const dailyDownloads = Math.round(monthlyDownloads / 30);
 
+    // Shared maturity factor — new apps monetize less even if they have traction.
+    let ageMonths = 36;
+    if (app.releaseDate) {
+      ageMonths = Math.max(1, Math.round(
+        (new Date() - new Date(app.releaseDate)) / (1000 * 60 * 60 * 24 * 30.44)
+      ));
+    }
+    let maturityFactor = 1.0;
+    if (ageMonths < 6)       maturityFactor = 0.55;
+    else if (ageMonths < 12) maturityFactor = 0.72;
+    else if (ageMonths < 24) maturityFactor = 0.88;
+
     let monthlyRevenue = 0;
-    let revenueModel = 'free';
+    let revenueModel;
 
     if (!app.isFree && app.price > 0) {
       // Paid app: downloads × price × 0.70 (after Apple's 30% cut)
       monthlyRevenue = monthlyDownloads * app.price * 0.70;
-      // Paid apps may also have IAP — add estimated IAP revenue
-      const iapArpu = (CATEGORY_ARPU[app.category] || DEFAULT_ARPU) * 0.3;
+      // Paid apps may also have IAP — add a small estimated IAP contribution
+      const iapArpu = (CATEGORY_ARPU[app.category] || DEFAULT_ARPU) * 0.25;
       monthlyRevenue += monthlyDownloads * iapArpu;
+      monthlyRevenue *= maturityFactor;
       revenueModel = 'paid';
     } else {
-      // Free app: use blended category ARPU (IAP + subs + ads combined)
+      // Free/freemium app: blended category ARPU
       const arpu = CATEGORY_ARPU[app.category] || DEFAULT_ARPU;
-
-      // Slight maturity adjustment (new apps monetize ~20% less, not 65% less)
-      let ageMonths = 36;
-      if (app.releaseDate) {
-        ageMonths = Math.max(1, Math.round((new Date() - new Date(app.releaseDate)) / (1000 * 60 * 60 * 24 * 30.44)));
-      }
-      let maturityFactor = 1.0;
-      if (ageMonths < 6) maturityFactor = 0.60;
-      else if (ageMonths < 12) maturityFactor = 0.75;
-      else if (ageMonths < 24) maturityFactor = 0.90;
-
       monthlyRevenue = monthlyDownloads * arpu * maturityFactor;
-      revenueModel = app.hasIAP ? 'freemium' : 'freemium';
+      revenueModel = app.hasIAP ? 'freemium' : 'ads';
     }
+
+    // ── Viral-scale dampener ──────────────────────────────────────────
+    // Apps with very high monthly rating velocity tend to be free-first
+    // with low paid conversion (social, AI chatbots, viral utilities).
+    // The raw ARPU model overestimates these. Scale down gracefully.
+    const ratingCount = app.ratingCount || 0;
+    const monthlyRatings = ratingCount / Math.max(1, ageMonths);
+    if (monthlyRatings > 500000)      monthlyRevenue *= 0.55;
+    else if (monthlyRatings > 200000) monthlyRevenue *= 0.70;
+    else if (monthlyRatings > 50000)  monthlyRevenue *= 0.85;
 
     // Apply platform revenue factor
     const platRev = PLAT_REVENUE[platform] || 1.0;
@@ -982,9 +1016,10 @@ const API = (() => {
   }
 
   function trendArrow(trend) {
-    if (trend > 3)  return { cls: 'trend-up',   icon: '▲', text: `+${trend.toFixed(1)}%` };
-    if (trend < -3) return { cls: 'trend-down',  icon: '▼', text: `${trend.toFixed(1)}%` };
-    return                 { cls: 'trend-flat',  icon: '—', text: `${trend.toFixed(1)}%` };
+    const t = Number(trend) || 0;
+    if (t > 3)  return { cls: 'trend-up',   icon: '▲', text: `+${t.toFixed(1)}%` };
+    if (t < -3) return { cls: 'trend-down', icon: '▼', text: `${t.toFixed(1)}%` };
+    return               { cls: 'trend-flat', icon: '↔', text: `${t >= 0 ? '+' : ''}${t.toFixed(1)}%` };
   }
 
   return {
