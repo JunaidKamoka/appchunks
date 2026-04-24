@@ -2232,19 +2232,16 @@ html, body { -webkit-text-size-adjust: 100%; }
   margin-bottom: 14px;
 }
 
-/* AdSense slots */
+/* AdSense slots — fully collapsed until an ad actually renders */
 .ad-slot {
+  display: none;
   width: 100%;
   max-width: 1080px;
   margin: 0 auto;
-  min-height: 90px;
-  background: var(--bg-surface);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
 }
-.ad-top { margin-bottom: 4px; }
+.ad-slot:has(iframe) {
+  display: block;
+  margin-bottom: 4px;
+}
 
