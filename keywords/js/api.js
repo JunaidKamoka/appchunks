@@ -846,7 +846,9 @@ const API = (() => {
    */
   function estimateMonthlyDownloads(app) {
     const ratingCount = app.ratingCount || 0;
-    if (ratingCount <= 0) return 50;
+    // Insufficient signal — don't manufacture numbers for clone/new apps.
+    // Caller should treat 0 as "no estimate available".
+    if (ratingCount < 20) return 0;
 
     // Calculate app age in months from release date
     let ageMonths = 36;
@@ -916,6 +918,18 @@ const API = (() => {
    */
   function estimateAppRevenue(app, platform, country) {
     let monthlyDownloads = estimateMonthlyDownloads(app);
+
+    // Apps with insufficient rating signal get no estimate at all.
+    if (monthlyDownloads <= 0) {
+      return {
+        monthlyRevenue: 0,
+        annualRevenue: 0,
+        dailyDownloads: 0,
+        monthlyDownloads: 0,
+        revenueModel: app.isFree ? 'free' : 'paid',
+        hasEstimate: false,
+      };
+    }
 
     // Apply platform download factor
     const platDl = PLAT_DOWNLOADS[platform] || 1.0;
@@ -988,13 +1002,16 @@ const API = (() => {
       dailyDownloads: Math.max(0, dailyDownloads),
       monthlyDownloads: Math.max(0, monthlyDownloads),
       revenueModel,
+      hasEstimate: true,
     };
   }
 
   /**
-   * Format revenue as $X, $XK, $XM
+   * Format revenue as $X, $XK, $XM — returns a dash when we have no estimate
+   * rather than inventing a tiny dollar figure.
    */
   function formatRevenue(n) {
+    if (!n || n < 1) return '—';
     if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
     if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
     if (n >= 1)   return `$${Math.round(n)}`;

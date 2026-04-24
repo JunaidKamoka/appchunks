@@ -553,6 +553,16 @@
 
       const revModelIcon = revenue.revenueModel === 'paid' ? '💎' : revenue.revenueModel === 'freemium' ? '🔓' : '📢';
 
+      // Revenue block: show "—" for apps without enough rating signal to estimate
+      const hasEstimate = revenue.hasEstimate !== false && revenue.monthlyDownloads > 0;
+      const revenueBlock = hasEstimate
+        ? `<div class="app-revenue-val">${API.formatRevenue(revenue.monthlyRevenue)}<span class="app-revenue-period">/mo</span></div>
+           <div class="app-revenue-downloads">${API.formatNumber(revenue.monthlyDownloads)} downloads/mo</div>
+           <div class="app-revenue-model">${revModelIcon} ${revenue.revenueModel}</div>`
+        : `<div class="app-revenue-val app-revenue-none">—</div>
+           <div class="app-revenue-downloads">No estimate</div>
+           <div class="app-revenue-model app-revenue-none-sub">insufficient data</div>`;
+
       return `
       <div class="app-row" data-appidx="${idx}">
         <div class="app-rank ${isTop3 ? 'top3' : ''}">#${rank}</div>
@@ -566,9 +576,7 @@
           </div>
         </div>
         <div class="app-revenue">
-          <div class="app-revenue-val">${API.formatRevenue(revenue.monthlyRevenue)}<span class="app-revenue-period">/mo</span></div>
-          <div class="app-revenue-downloads">${API.formatNumber(revenue.monthlyDownloads)} downloads/mo</div>
-          <div class="app-revenue-model">${revModelIcon} ${revenue.revenueModel}</div>
+          ${revenueBlock}
         </div>
         <div class="app-stats">
           <div class="app-rating">

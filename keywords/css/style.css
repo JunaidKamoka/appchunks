@@ -823,6 +823,16 @@ body.sidebar-open .hamburger-icon span:nth-child(3) {
   background: var(--bg-active);
   text-transform: capitalize;
 }
+.app-revenue-val.app-revenue-none {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+.app-revenue-model.app-revenue-none-sub {
+  background: transparent;
+  padding: 0;
+  font-style: italic;
+}
 
 /* Revenue grid in app modal */
 .modal-revenue-grid {
