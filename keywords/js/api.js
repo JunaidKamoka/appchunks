@@ -296,8 +296,8 @@ const API = (() => {
     const nichBonus = appCount < 10 ? 15 : appCount < 20 ? 8 : 0;
 
     const chance = Math.max(1, Math.min(99, Math.round(
-      100 - difficulty + lowCompetitionBonus + gapBonus + nichBonus
-    ) / 1.2));
+      (100 - difficulty + lowCompetitionBonus + gapBonus + nichBonus) / 1.2
+    )));
 
     // ── COMPETING APPS ──
     // Use actual result count as base, estimate broader competition

@@ -19,7 +19,7 @@
   <!-- AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1702155776302125" crossorigin="anonymous"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=20260424a" />
+  <link rel="stylesheet" href="css/style.css?v=20260424b" />
 </head>
 <body>
 
@@ -142,10 +142,21 @@
         <div class="suggestions" id="suggestions"></div>
       </div>
 
-      <!-- LOADING -->
-      <div class="loading-state hidden" id="loadingState">
-        <div class="spinner"></div>
-        <p>Fetching keyword intelligence…</p>
+      <!-- LOADING SKELETON -->
+      <div class="loading-state hidden" id="loadingState" aria-live="polite">
+        <div class="skeleton-results">
+          <div class="sk-title"></div>
+          <div class="sk-metrics">
+            <div class="sk-metric"></div><div class="sk-metric"></div><div class="sk-metric"></div>
+            <div class="sk-metric"></div><div class="sk-metric"></div><div class="sk-metric"></div>
+          </div>
+          <div class="sk-section">
+            <div class="sk-section-header"></div>
+            <div class="sk-row"></div><div class="sk-row"></div>
+            <div class="sk-row"></div><div class="sk-row"></div>
+          </div>
+          <div class="sk-hint"><div class="spinner spinner-sm"></div><span>Fetching keyword intelligence…</span></div>
+        </div>
       </div>
 
       <!-- RESULTS -->
@@ -272,11 +283,11 @@
         <div class="section-card" id="asoGeneratorCard">
           <div class="section-header">
             <h3><i data-feather="edit-3"></i> ASO Metadata Generator</h3>
-            <button class="btn-primary btn-generate-aso" id="generateAsoBtn">
-              <i data-feather="zap"></i> Generate Title, Subtitle & Description
+            <button class="btn-primary btn-generate-aso" id="generateAsoBtn" title="Regenerate suggestions">
+              <i data-feather="refresh-cw"></i> Regenerate
             </button>
           </div>
-          <div class="aso-generator-content hidden" id="asoGeneratorContent">
+          <div class="aso-generator-content" id="asoGeneratorContent">
             <!-- Titles -->
             <div class="aso-section">
               <div class="aso-section-label">

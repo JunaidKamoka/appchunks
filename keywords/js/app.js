@@ -262,9 +262,6 @@
     els.loadingState.classList.remove('hidden');
     els.suggestions.innerHTML = '';
 
-    // Reset ASO generator
-    els.asoGeneratorContent.classList.add('hidden');
-
     try {
       const data = await API.searchKeyword(keyword, state.platform, state.country);
       state.results = data;
@@ -344,6 +341,9 @@
 
     // Apps
     renderApps(apps);
+
+    // ASO metadata — auto-generate so the section is useful on first view
+    generateAndRenderASO();
 
     // Show results
     try { feather.replace(); } catch(e) {}
