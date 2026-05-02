@@ -383,8 +383,43 @@ const API = (() => {
     const effectiveLeader = relevantCount === 0 ? 0 : leaderScore;
     const effectiveDepth  = relevantCount === 0 ? 0 : depthScore;
 
+    // ── Brand-search detection ────────────────────────────────────────
+    // Brand keywords ("quizlet", "spotify", "netflix") have ONE dominant
+    // matching app (the brand itself) and thousands of competing apps that
+    // don't mention the brand by name — so the relevance gate would
+    // wrongly deflate them, and the single-word specificity penalty fires
+    // even though brand searches are real, high-volume queries.
+    //
+    // Detection (all must hold):
+    //   1. Rank-1 app's title starts with or equals the keyword
+    //   2. Rank-1 has ≥50K user ratings (filters weak prefix coincidences)
+    //   3. ≤25% of all returned apps have the keyword in their title.
+    //      Real brand: the trademark belongs to ONE company so few apps
+    //      contain it. Generic word like "vpn" / "weather" / "calculator":
+    //      most apps in that category include the word in title.
+    const top1 = apps[0];
+    const top1Name = _normMatch(top1 && top1.name);
+    const titleMatchRatio = titleMatches / appCount;
+    const isBrandQuery =
+      top1 &&
+      (top1.ratingCount || 0) >= 50_000 &&
+      relevantCount > 0 &&
+      titleMatchRatio <= 0.25 &&
+      (top1Name === kwLower ||
+       top1Name.startsWith(kwLower + ' ') ||
+       top1Name.startsWith(kwLower + ':') ||
+       top1Name.startsWith(kwLower + '-') ||
+       top1Name.startsWith(kwLower + '|'));
+
+    // For brand queries, suppress the specificity penalty (the brand is a
+    // legitimate single-word keyword) and the relevance gate (low ratio is
+    // expected — only the brand owns the brand), and add a brand bonus.
+    const finalSpecPenalty = isBrandQuery ? 0 : specificityPenalty;
+    const finalGate        = isBrandQuery ? Math.max(relevanceGate, -5) : relevanceGate;
+    const brandBonus       = isBrandQuery ? 15 : 0;
+
     const raw = resultCountScore + effectiveLeader + titleMatchScore + effectiveDepth +
-                specificityPenalty + exactBonus + relevanceGate;
+                finalSpecPenalty + exactBonus + finalGate + brandBonus;
     return Math.max(1, Math.min(100, Math.round(raw)));
   }
 
