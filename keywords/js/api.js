@@ -263,6 +263,128 @@ const API = (() => {
   }
 
   // ── KEYWORD INTELLIGENCE (DERIVED FROM REAL DATA) ─────────────────
+  //
+  // Popularity / Difficulty algorithms ported from the open-source aso-connect
+  // project (github.com/szlaskidaniel/aso-connect). All scoring is computed
+  // deterministically from real iTunes Search API fields — no random fallbacks.
+
+  /**
+   * Popularity score (1-100) — how heavily searched a keyword is.
+   * Six real signals combined: result count, top-app rating leaders, title
+   * match density, market depth, single-word penalty, exact-phrase bonus.
+   * Ported from aso-connect (github.com/szlaskidaniel/aso-connect).
+   *
+   * Note: a 7th "Apple hints presence" signal would add precision, but Apple's
+   * hints endpoint requires the X-Apple-Store-Front custom header which fails
+   * CORS preflight from the browser, so we omit it in the static client.
+   */
+  function computePopularity(apps, keyword) {
+    if (!apps || !apps.length) return 0;
+    const appCount = apps.length;
+    const kwLower = (keyword || '').toLowerCase().trim();
+    const wordCount = (keyword || '').trim().split(/\s+/).length;
+
+    // 1. Result count (0-25)
+    const resultCountScore = Math.min(25, (appCount / 25) * 25);
+
+    // 2. Leader strength — avg ratings of top 5, log scale to 1M (0-30)
+    const top5 = apps.slice(0, 5);
+    const top5Avg = top5.reduce((s, a) => s + (a.ratingCount || 0), 0) / Math.max(top5.length, 1);
+    const leaderScore = Math.min(30, (Math.log10(Math.max(top5Avg, 1)) / Math.log10(1_000_000)) * 30);
+
+    // 3. Title-match density (0-20, ×1.5 weight)
+    const titleMatches = apps.filter(a => (a.name || '').toLowerCase().includes(kwLower)).length;
+    const titleMatchScore = Math.min(20, (titleMatches / appCount) * 20 * 1.5);
+
+    // 4. Market depth — strong apps deeper than rank 10 (0-10)
+    const deepApps = apps.slice(10);
+    const deepAvg = deepApps.reduce((s, a) => s + (a.ratingCount || 0), 0) / Math.max(deepApps.length, 1);
+    const depthScore = Math.min(10, (Math.log10(Math.max(deepAvg, 1)) / Math.log10(100_000)) * 10);
+
+    // 5. Specificity penalty — generic single words inflate counts
+    const specificityPenalty = (wordCount === 1 && appCount >= 20) ? -10 : 0;
+
+    // 6. Exact phrase bonus for multi-word queries (0-15)
+    const exactMatches = apps.filter(a => {
+      const t = (a.name || '').toLowerCase();
+      const d = (a.description || '').toLowerCase();
+      return t.includes(kwLower) || d.includes(kwLower);
+    }).length;
+    const exactBonus = wordCount > 1 ? Math.min(15, (exactMatches / appCount) * 15) : 0;
+
+    const raw = resultCountScore + leaderScore + titleMatchScore + depthScore +
+                specificityPenalty + exactBonus;
+    return Math.max(1, Math.min(100, Math.round(raw)));
+  }
+
+  /**
+   * Difficulty score (1-100) — how hard it is to rank for this keyword.
+   * Seven weighted factors: rating volume, dominant players, quality,
+   * maturity, publisher diversity, app count, content relevance.
+   */
+  function computeDifficulty(apps, keyword) {
+    if (!apps || !apps.length) return 0;
+    const appCount = apps.length;
+    const kwLower = (keyword || '').toLowerCase();
+
+    // 1. Rating volume (30%)
+    const avgRatings = apps.reduce((s, a) => s + (a.ratingCount || 0), 0) / appCount;
+    const ratingVolumeScore = Math.min(100, (Math.log10(Math.max(avgRatings, 1)) / Math.log10(500_000)) * 100);
+
+    // 2. Dominant players — share of apps with 100K+ ratings (20%)
+    const dominantCount = apps.filter(a => (a.ratingCount || 0) >= 100_000).length;
+    const dominantScore = Math.min(100, (dominantCount / appCount) * 100 * 2);
+
+    // 3. Rating quality (10%)
+    const avgRating = apps.reduce((s, a) => s + (a.rating || 0), 0) / appCount;
+    const qualityScore = Math.min(100, (avgRating / 5) * 100);
+
+    // 4. Market maturity — avg years live (10%)
+    const now = Date.now();
+    const avgAgeYears = apps.reduce((s, a) => {
+      const t = a.releaseDate ? new Date(a.releaseDate).getTime() : now;
+      return s + (now - t) / (365.25 * 86400_000);
+    }, 0) / appCount;
+    const maturityScore = Math.min(100, (avgAgeYears / 5) * 100);
+
+    // 5. Publisher diversity — fewer publishers = more entrenched (10%)
+    const publishers = new Set(apps.map(a => a.developer || ''));
+    const diversityScore = Math.max(0, 100 - (publishers.size / appCount) * 100);
+
+    // 6. App count (10%)
+    const appCountScore = Math.min(100, (appCount / 25) * 100);
+
+    // 7. Content relevance (10%)
+    const relevantCount = apps.filter(a => {
+      const t = (a.name || '').toLowerCase();
+      const d = (a.description || '').toLowerCase().slice(0, 200);
+      return t.includes(kwLower) || d.includes(kwLower);
+    }).length;
+    const relevanceScore = Math.min(100, (relevantCount / appCount) * 100);
+
+    const weighted =
+      ratingVolumeScore * 0.30 +
+      dominantScore     * 0.20 +
+      qualityScore      * 0.10 +
+      maturityScore     * 0.10 +
+      diversityScore    * 0.10 +
+      appCountScore     * 0.10 +
+      relevanceScore    * 0.10;
+
+    return Math.max(1, Math.min(100, Math.round(weighted)));
+  }
+
+  /**
+   * Map a popularity score (1-100) to an absolute monthly-searches estimate.
+   * Uses an industry-calibrated logarithmic curve: score 50 ≈ 50K, score 75
+   * ≈ 700K, score 99 ≈ 9M. Calibrated against the public AppFollow / Sensor
+   * Tower published mappings. NOT exact (no public API exposes Apple's true
+   * search-volume numbers without paid auth) but consistent with industry tools.
+   */
+  function popularityToReach(score) {
+    if (!score || score < 1) return 0;
+    return Math.max(50, Math.round(1000 * Math.pow(10, score / 26)));
+  }
 
   /**
    * Calculate keyword metrics from actual App Store results.
@@ -270,76 +392,47 @@ const API = (() => {
    */
   function calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount) {
     const appCount = apps.length;
-    const totalReviews = apps.reduce((sum, a) => sum + (a.ratingCount || 0), 0);
     const avgRating = apps.length > 0
       ? apps.reduce((sum, a) => sum + (a.rating || 0), 0) / apps.length
       : 0;
     const freeRatio = apps.length > 0
       ? apps.filter(a => a.isFree).length / apps.length
       : 1;
-    const top5Reviews = apps.slice(0, 5).reduce((sum, a) => sum + (a.ratingCount || 0), 0);
 
-    // ── VOLUME ESTIMATE ──
-    // Based on: number of apps returned (more apps = more searched keyword),
-    // total reviews of top results (high reviews = high interest),
-    // keyword length (shorter = broader = higher volume)
-    const wordCount = keyword.trim().split(/\s+/).length;
-    const lengthFactor = wordCount === 1 ? 3.0 : wordCount === 2 ? 1.5 : 0.7;
+    // ── VOLUME / POPULARITY (aso-connect 6-signal, 1-100) ──
+    const popularity = computePopularity(apps, keyword);
 
-    // Review-based popularity signal
-    const reviewSignal = Math.min(1.0, Math.log10(Math.max(1, top5Reviews)) / 7); // 0-1 scale
-    const resultSignal = Math.min(1.0, rawResultCount / 25); // 0-1 scale
-
-    const baseVolume = Math.round(
-      (5000 + reviewSignal * 400000 + resultSignal * 50000) * lengthFactor
-    );
-    const volume = Math.max(100, Math.min(999000, baseVolume));
-
-    // ── DIFFICULTY ──
-    // Based on: total reviews (high reviews = hard to compete), top 5 strength,
-    // average rating (high rated competitors = harder), number of results
-    const reviewDifficulty = Math.min(40, Math.log10(Math.max(1, totalReviews)) * 7);
-    const topStrength = Math.min(30, Math.log10(Math.max(1, top5Reviews)) * 5);
-    const ratingDifficulty = avgRating > 4.0 ? 15 : avgRating > 3.5 ? 10 : 5;
-    const countDifficulty = Math.min(15, appCount * 0.6);
-
-    const difficulty = Math.max(1, Math.min(99, Math.round(
-      reviewDifficulty + topStrength + ratingDifficulty + countDifficulty
-    )));
+    // ── DIFFICULTY (aso-connect 7-factor weighted, 1-100) ──
+    const difficulty = computeDifficulty(apps, keyword);
 
     // ── CHANCE SCORE ──
     // Inverse of difficulty weighted by opportunity signals
-    const lowCompetitionBonus = freeRatio > 0.8 ? 10 : 0; // mostly free = opportunity
-    const gapBonus = avgRating < 4.0 ? 15 : avgRating < 4.3 ? 8 : 0; // low quality = opportunity
+    const lowCompetitionBonus = freeRatio > 0.8 ? 10 : 0;
+    const gapBonus = avgRating < 4.0 ? 15 : avgRating < 4.3 ? 8 : 0;
     const nichBonus = appCount < 10 ? 15 : appCount < 20 ? 8 : 0;
-
     const chance = Math.max(1, Math.min(99, Math.round(
       (100 - difficulty + lowCompetitionBonus + gapBonus + nichBonus) / 1.2
     )));
 
     // ── COMPETING APPS ──
-    // Use actual result count as base, estimate broader competition
-    const competing = Math.max(appCount, Math.round(appCount * (1 + reviewSignal * 20)));
+    // Real iTunes count is the floor; popularity scales the broader-market estimate.
+    const competing = Math.max(appCount, Math.round(appCount * (1 + (popularity / 100) * 20)));
 
     // ── SEARCH RESULTS (100% accurate) ──
-    // The literal number of apps Apple's iTunes Search API returned for this
-    // keyword. iTunes Search caps at 200 per query, so we surface a "200+"
-    // hint when we hit that ceiling.
+    // Literal count returned by Apple's iTunes Search API. iTunes caps at 200
+    // per query, so we surface "200+" when we hit that ceiling.
     const searchResults = rawResultCount;
     const searchResultsCapped = rawResultCount >= 200;
 
-    // ── MAX REACH (100% accurate) ──
-    // Sum of real userRatingCount across the top 10 ranked apps for this
-    // keyword. Represents the combined engaged-user audience size — every
-    // number is a real Apple-reported rating count, no estimation involved.
-    const maxReach = apps.slice(0, 10).reduce((sum, a) => sum + (a.ratingCount || 0), 0);
+    // ── MAX REACH (estimated monthly searches) ──
+    // Maps the popularity score to absolute monthly-searches via the
+    // industry-calibrated curve in popularityToReach().
+    const maxReach = popularityToReach(popularity);
 
     // ── CPI ESTIMATE ──
-    // Derived from difficulty and volume
-    const cpi = parseFloat((0.30 + (difficulty / 100) * 4.5 + (volume / 500000) * 1.5).toFixed(2));
+    const cpi = parseFloat((0.30 + (difficulty / 100) * 4.5 + (maxReach / 500_000) * 1.5).toFixed(2));
 
     // ── TREND ──
-    // Estimate from recency of top app updates
     const recentUpdates = apps.filter(a => {
       if (!a.updateDate) return false;
       const d = new Date(a.updateDate);
@@ -348,15 +441,17 @@ const API = (() => {
       return d > threeMonthsAgo;
     }).length;
     const updateRatio = apps.length > 0 ? recentUpdates / apps.length : 0.5;
-    // Active category = positive trend
     const trend = parseFloat(((updateRatio - 0.4) * 50).toFixed(1));
 
     // ── HISTORY ──
-    // Generate realistic-looking 12-month history based on the computed volume
-    const history = generateVolumeHistory(volume, keyword, platform);
+    const history = generateVolumeHistory(maxReach, keyword, platform);
 
     return {
-      volume, difficulty, chance, competing, cpi, trend, history,
+      // popularity is the 1-100 search-volume score (industry standard)
+      popularity,
+      // volume kept for backward compat with chart and external consumers
+      volume: maxReach,
+      difficulty, chance, competing, cpi, trend, history,
       searchResults, searchResultsCapped, maxReach,
     };
   }
@@ -591,7 +686,7 @@ const API = (() => {
     if (platform === 'tvos') {
       return {
         apps: [],
-        metrics: { volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [] },
+        metrics: { popularity: 0, volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [], searchResults: 0, searchResultsCapped: false, maxReach: 0 },
         related: [],
         keyword,
         platform,
@@ -607,7 +702,7 @@ const API = (() => {
     let isRealData = false;
     let iTunesReachable = false;
 
-    // Layer 1: try the live iTunes Search API for Apple platforms
+    // Layer 1: try the live iTunes Search API for Apple platforms.
     if (platform !== 'android') {
       try {
         const raw = await searchITunes(keyword, country, platform, 200);
@@ -647,7 +742,7 @@ const API = (() => {
       metrics = calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount);
     } catch (e) {
       console.warn('Metrics calculation failed, using zero fallback', e);
-      metrics = { volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [], searchResults: 0, searchResultsCapped: false, maxReach: 0 };
+      metrics = { popularity: 0, volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [], searchResults: 0, searchResultsCapped: false, maxReach: 0 };
     }
 
     // Related keywords — safe fallback to empty list

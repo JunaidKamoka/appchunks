@@ -406,8 +406,16 @@
     const chance = API.chanceLabel(chanceVal);
     const trend  = API.trendArrow(m.trend);
 
-    $('metricVolumeVal').textContent  = API.formatVolume(Math.round(Number(m.volume) || 0));
-    $('metricVolumeSub').innerHTML    = `<span class="text-muted">searches/month</span>`;
+    // ── Search Volume (popularity score 1-100, industry standard) ──
+    const popularity = Math.round(Number(m.popularity) || 0);
+    const popCls = popularity >= 75 ? 'text-green' : popularity >= 50 ? 'text-yellow' : popularity >= 25 ? 'text-blue' : 'text-muted';
+    const popLabel = popularity >= 75 ? 'Very High' : popularity >= 50 ? 'High' : popularity >= 25 ? 'Moderate' : popularity >= 10 ? 'Low' : 'Very Low';
+    $('metricVolumeVal').innerHTML  = popularity === 0
+      ? '—'
+      : `<span class="${popCls}">${popularity}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
+    $('metricVolumeSub').innerHTML  = popularity === 0
+      ? '<span class="text-muted">no data</span>'
+      : `<span class="${popCls}">${popLabel}</span>`;
 
     // ── Search Results (live, real iTunes count) ──
     const sr = Math.round(Number(m.searchResults) || 0);
@@ -416,12 +424,12 @@
     if (srEl)  srEl.textContent  = sr === 0 ? '—' : `${API.formatNumber(sr)}${m.searchResultsCapped ? '+' : ''}`;
     if (srSub) srSub.innerHTML   = `<span class="text-muted">${m.searchResultsCapped ? 'capped (Apple max)' : 'apps in App Store'}</span>`;
 
-    // ── Max Reach (live, sum of real top-10 user rating counts) ──
+    // ── Max Reach (estimated monthly searches, derived from popularity) ──
     const reach = Math.round(Number(m.maxReach) || 0);
     const reachEl = $('metricReachVal');
     const reachSub = $('metricReachSub');
     if (reachEl)  reachEl.textContent  = reach === 0 ? '—' : API.formatNumber(reach);
-    if (reachSub) reachSub.innerHTML   = `<span class="text-muted">top-10 ratings combined</span>`;
+    if (reachSub) reachSub.innerHTML   = `<span class="text-muted">est. monthly searches</span>`;
 
     $('metricDiffVal').innerHTML      = `<span class="${diff.cls}">${difficulty}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
     $('metricDiffSub').innerHTML      = `<span class="${diff.cls}">${diff.label}</span>`;
