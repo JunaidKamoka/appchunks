@@ -924,7 +924,7 @@
     try {
       const data = await API.getTopCharts(state.platform, state.country, _tcGenre);
       if (data.unavailable) {
-        listEl.innerHTML = `<div class="tc-loading">${data.reason}<br><span style="font-size:.8rem;margin-top:8px;display:block">Switch to iOS or iPad for live chart data.</span></div>`;
+        listEl.innerHTML = `<div class="tc-loading">${data.reason}<br><span style="font-size:.8rem;margin-top:8px;display:block">Switch to iOS, iPad, or macOS for live chart data.</span></div>`;
         if (updatedEl) updatedEl.textContent = '';
         return;
       }
@@ -1224,7 +1224,7 @@
   }
 
   function platformLabel(p) {
-    return { ios:'iOS', ipad:'iPad', macos:'macOS', android:'Android' }[p] || p;
+    return { ios:'iOS', ipad:'iPad', macos:'macOS', watchos:'watchOS', tvos:'tvOS', android:'Android' }[p] || p;
   }
 
   function appEmoji(category) {

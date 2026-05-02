@@ -29,20 +29,34 @@ const API = (() => {
     ios:     'software',
     ipad:    'iPadSoftware',
     macos:   'macSoftware',
+    watchos: 'software', // filtered post-fetch by supportedDevices
+    tvos:    'software', // Apple's public API has no tvSoftware entity
     android: 'software', // fallback; Android uses simulated data
   };
+
+  function supportsWatch(raw) {
+    const devs = raw.supportedDevices || [];
+    return devs.some(d => typeof d === 'string' && d.startsWith('Watch'));
+  }
 
   /**
    * Search iTunes for apps by keyword
    */
   async function searchITunes(keyword, country, platform, limit = 25) {
     const entity = PLATFORM_ENTITY[platform] || 'software';
-    const url = `${ITUNES_BASE}?term=${encodeURIComponent(keyword)}&entity=${entity}&country=${country}&limit=${limit}&lang=en_us`;
+    // For watchOS we filter the response, so request a wider pool to compensate.
+    const fetchLimit = platform === 'watchos' ? Math.min(200, Math.max(limit * 4, 100)) : limit;
+    const url = `${ITUNES_BASE}?term=${encodeURIComponent(keyword)}&entity=${entity}&country=${country}&limit=${fetchLimit}&lang=en_us`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`iTunes API error: ${res.status}`);
     const data = await res.json();
-    return data.results || [];
+    let results = data.results || [];
+
+    if (platform === 'watchos') {
+      results = results.filter(supportsWatch).slice(0, limit);
+    }
+    return results;
   }
 
   /**
@@ -153,6 +167,10 @@ const API = (() => {
     if (raw.features && raw.features.includes('iosUniversal')) return 'ios';
     if (kind === 'software') return 'ios';
     return 'ios';
+  }
+
+  function appSupportsWatch(app) {
+    return supportsWatch({ supportedDevices: app && app._supportedDevices });
   }
 
   function normalizeITunesApp(raw, rank, platform) {
@@ -457,8 +475,18 @@ const API = (() => {
       toppaid:      'toppaidmacapps',
       topgrossing:  'topgrossingmacapps',
     },
+    // Apple deprecated dedicated Apple Watch RSS feeds.
+    watchos: null,
+    // Apple deprecated dedicated tvOS App Store RSS feeds.
+    tvos: null,
     // Android: no Apple data
     android: null,
+  };
+
+  const CHART_UNAVAILABLE_REASON = {
+    watchos: 'Apple Watch top charts are not available via Apple RSS.',
+    tvos:    'tvOS top charts are not available via Apple RSS.',
+    android: 'Android charts are not available via Apple RSS.',
   };
 
   /**
@@ -506,13 +534,13 @@ const API = (() => {
 
     const feeds = CHART_FEEDS[platform];
 
-    // Android: no Apple data
+    // Platforms without Apple-provided chart feeds (android, watchos, tvos)
     if (!feeds) {
       const result = {
         topfree: [], toppaid: [], topgrossing: [],
         updated: new Date(),
         unavailable: true,
-        reason: 'Android charts are not available via Apple RSS.',
+        reason: CHART_UNAVAILABLE_REASON[platform] || 'Top charts are not available for this platform.',
       };
       _chartsCache[cacheKey] = result;
       return result;
@@ -543,11 +571,13 @@ const API = (() => {
     let apps = [];
     let rawResultCount = 0;
     let isRealData = false;
+    let iTunesReachable = false;
 
     // Layer 1: try the live iTunes Search API for Apple platforms
     if (platform !== 'android') {
       try {
         const raw = await searchITunes(keyword, country, platform, 200);
+        iTunesReachable = true;
         rawResultCount = raw.length;
         apps = raw.map((r, i) => normalizeITunesApp(r, i + 1, platform));
         isRealData = apps.length > 0;
@@ -556,9 +586,11 @@ const API = (() => {
       }
     }
 
-    // Layer 2: Android always uses estimated data; other platforms fall here
-    // if the live API returned 0 results or threw.
-    if (apps.length === 0) {
+    // Layer 2: Android always uses estimated data; Apple platforms only
+    // synthesize when iTunes itself is unreachable. A genuine zero-result
+    // response (e.g. no Apple Watch apps for a niche keyword) should remain
+    // empty so we don't show fake "Watch" apps that aren't really there.
+    if (apps.length === 0 && (platform === 'android' || !iTunesReachable)) {
       try {
         apps = generateAndroidApps(keyword, country, 200).map(a => ({ ...a, platform }));
         rawResultCount = apps.length;
@@ -827,9 +859,12 @@ const API = (() => {
     'Graphics & Design':  0.90,
   };
 
-  // Platform download and revenue multipliers
-  const PLAT_DOWNLOADS = { ios: 1.00, ipad: 0.25, macos: 0.10, android: 0.85 };
-  const PLAT_REVENUE   = { ios: 1.00, ipad: 0.90, macos: 1.25, android: 0.50 };
+  // Platform download and revenue multipliers.
+  // watchOS/tvOS apps ride on iPhone install volume but get a small fraction
+  // of active usage; revenue is largely captured on the paired iOS app, so
+  // standalone Watch/TV revenue contribution is modest.
+  const PLAT_DOWNLOADS = { ios: 1.00, ipad: 0.25, macos: 0.10, watchos: 0.08, tvos: 0.06, android: 0.85 };
+  const PLAT_REVENUE   = { ios: 1.00, ipad: 0.90, macos: 1.25, watchos: 0.30, tvos: 0.40, android: 0.50 };
 
   // Country storefront share of global App Store revenue (approximate)
   // Used to scope download/revenue estimates to the selected storefront.

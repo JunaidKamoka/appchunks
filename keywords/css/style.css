@@ -1976,11 +1976,16 @@ html, body { -webkit-text-size-adjust: 100%; }
     order: 1;
     flex: 1;
     align-self: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
+  .platform-switcher::-webkit-scrollbar { display: none; }
   .platform-btn {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     min-height: 36px;
+    flex-shrink: 0;
   }
   /* Row 2: country selector full-width */
   .country-selector {
@@ -2253,8 +2258,8 @@ html, body { -webkit-text-size-adjust: 100%; }
    RESPONSIVE — Very small phones (≤380px)
 ══════════════════════════════════════════ */
 @media (max-width: 380px) {
-  .platform-btn { padding: 5px 7px; font-size: 0.72rem; }
-  .platform-switcher { gap: 3px; }
+  .platform-btn { padding: 5px 6px; font-size: 0.72rem; }
+  .platform-switcher { gap: 2px; padding: 2px; }
   .search-hero h1 { font-size: 1.1rem; }
   .search-hero p { font-size: 0.78rem; }
   .metric-value { font-size: 0.95rem; }
