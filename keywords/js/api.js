@@ -568,6 +568,24 @@ const API = (() => {
   // ── MAIN PUBLIC API ────────────────────────────────────────────────
 
   async function searchKeyword(keyword, platform, country) {
+    // tvOS: Apple's public iTunes Search API does not expose Apple TV apps as a
+    // distinct entity, and bundle-ID lookups for tvOS-specific apps return
+    // empty. Returning iPhone apps tagged as tvOS would be misleading, so we
+    // short-circuit with an explicit "unavailable" response.
+    if (platform === 'tvos') {
+      return {
+        apps: [],
+        metrics: { volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [] },
+        related: [],
+        keyword,
+        platform,
+        country,
+        isRealData: false,
+        unavailable: true,
+        reason: 'Apple TV app data is not available via Apple\'s public API.',
+      };
+    }
+
     let apps = [];
     let rawResultCount = 0;
     let isRealData = false;

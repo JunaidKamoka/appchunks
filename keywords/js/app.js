@@ -320,12 +320,50 @@
   // ── RENDER RESULTS ────────────────────────────────────────────────
   // Each subsection is rendered independently — one section failing (e.g.
   // due to missing data) must never block the rest of the page from showing.
+  // Cache the empty state's default heading so we can restore it when the
+  // user switches back to a supported platform after seeing the tvOS notice.
+  let _emptyStateDefaults = null;
+  function captureEmptyStateDefaults() {
+    if (_emptyStateDefaults) return;
+    const eh = els.emptyState.querySelector('h3');
+    const ep = els.emptyState.querySelector('p');
+    _emptyStateDefaults = {
+      h3: eh ? eh.textContent : '',
+      p:  ep ? ep.textContent : '',
+    };
+  }
+  function restoreEmptyStateDefaults() {
+    if (!_emptyStateDefaults) return;
+    const eh = els.emptyState.querySelector('h3');
+    const ep = els.emptyState.querySelector('p');
+    if (eh) eh.textContent = _emptyStateDefaults.h3;
+    if (ep) ep.textContent = _emptyStateDefaults.p;
+  }
+
   function renderResults(data) {
     const safe = data || {};
     const keyword = safe.keyword || state.keyword || '';
     const metrics = safe.metrics || {};
     const apps    = Array.isArray(safe.apps) ? safe.apps : [];
     const related = Array.isArray(safe.related) ? safe.related : [];
+
+    captureEmptyStateDefaults();
+
+    // Platforms with no public Apple data (currently tvOS) — show an honest
+    // empty state instead of fabricated metrics.
+    if (safe.unavailable) {
+      els.emptyState.classList.remove('hidden');
+      els.resultsContainer.classList.add('hidden');
+      const eh = els.emptyState.querySelector('h3');
+      const ep = els.emptyState.querySelector('p');
+      if (eh) eh.textContent = `No ${platformLabel(safe.platform)} data available`;
+      if (ep) ep.textContent = `${safe.reason || 'This platform is not supported by Apple\'s public API.'} Switch to iOS, iPad, macOS, or watchOS for live data.`;
+      return;
+    }
+
+    // Restore default copy in case the previous render swapped it for an
+    // "unavailable" notice.
+    restoreEmptyStateDefaults();
 
     // Title
     try { $('resultKeyword').textContent = `"${keyword}"`; } catch (e) { console.error('title', e); }
