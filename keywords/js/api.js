@@ -321,6 +321,19 @@ const API = (() => {
     // Use actual result count as base, estimate broader competition
     const competing = Math.max(appCount, Math.round(appCount * (1 + reviewSignal * 20)));
 
+    // ── SEARCH RESULTS (100% accurate) ──
+    // The literal number of apps Apple's iTunes Search API returned for this
+    // keyword. iTunes Search caps at 200 per query, so we surface a "200+"
+    // hint when we hit that ceiling.
+    const searchResults = rawResultCount;
+    const searchResultsCapped = rawResultCount >= 200;
+
+    // ── MAX REACH (100% accurate) ──
+    // Sum of real userRatingCount across the top 10 ranked apps for this
+    // keyword. Represents the combined engaged-user audience size — every
+    // number is a real Apple-reported rating count, no estimation involved.
+    const maxReach = apps.slice(0, 10).reduce((sum, a) => sum + (a.ratingCount || 0), 0);
+
     // ── CPI ESTIMATE ──
     // Derived from difficulty and volume
     const cpi = parseFloat((0.30 + (difficulty / 100) * 4.5 + (volume / 500000) * 1.5).toFixed(2));
@@ -342,7 +355,10 @@ const API = (() => {
     // Generate realistic-looking 12-month history based on the computed volume
     const history = generateVolumeHistory(volume, keyword, platform);
 
-    return { volume, difficulty, chance, competing, cpi, trend, history };
+    return {
+      volume, difficulty, chance, competing, cpi, trend, history,
+      searchResults, searchResultsCapped, maxReach,
+    };
   }
 
   /**
@@ -631,7 +647,7 @@ const API = (() => {
       metrics = calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount);
     } catch (e) {
       console.warn('Metrics calculation failed, using zero fallback', e);
-      metrics = { volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [] };
+      metrics = { volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [], searchResults: 0, searchResultsCapped: false, maxReach: 0 };
     }
 
     // Related keywords — safe fallback to empty list

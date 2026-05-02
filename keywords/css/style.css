@@ -475,10 +475,11 @@ body.sidebar-open .hamburger-icon span:nth-child(3) {
 /* METRICS GRID */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 28px;
 }
+@media (max-width: 1280px) { .metrics-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 1100px) { .metrics-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 700px)  { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
 
@@ -518,6 +519,25 @@ body.sidebar-open .hamburger-icon span:nth-child(3) {
 .cpc-icon svg { stroke: var(--yellow); }
 .trend-icon   { background: var(--purple-light); color: var(--purple); }
 .trend-icon svg { stroke: var(--purple); }
+.results-icon { background: var(--green-light); color: var(--green); }
+.results-icon svg { stroke: var(--green); }
+.reach-icon   { background: var(--accent-light); color: var(--accent); }
+.reach-icon svg { stroke: var(--accent); }
+
+/* "LIVE" badge on metrics that show 100% real Apple data */
+.metric-real { position: relative; }
+.metric-badge-real {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--green);
+  background: var(--green-light);
+  border-radius: 4px;
+  vertical-align: middle;
+}
 
 .metric-label {
   font-size: 0.72rem;

@@ -409,6 +409,20 @@
     $('metricVolumeVal').textContent  = API.formatVolume(Math.round(Number(m.volume) || 0));
     $('metricVolumeSub').innerHTML    = `<span class="text-muted">searches/month</span>`;
 
+    // ── Search Results (live, real iTunes count) ──
+    const sr = Math.round(Number(m.searchResults) || 0);
+    const srEl = $('metricResultsVal');
+    const srSub = $('metricResultsSub');
+    if (srEl)  srEl.textContent  = sr === 0 ? '—' : `${API.formatNumber(sr)}${m.searchResultsCapped ? '+' : ''}`;
+    if (srSub) srSub.innerHTML   = `<span class="text-muted">${m.searchResultsCapped ? 'capped (Apple max)' : 'apps in App Store'}</span>`;
+
+    // ── Max Reach (live, sum of real top-10 user rating counts) ──
+    const reach = Math.round(Number(m.maxReach) || 0);
+    const reachEl = $('metricReachVal');
+    const reachSub = $('metricReachSub');
+    if (reachEl)  reachEl.textContent  = reach === 0 ? '—' : API.formatNumber(reach);
+    if (reachSub) reachSub.innerHTML   = `<span class="text-muted">top-10 ratings combined</span>`;
+
     $('metricDiffVal').innerHTML      = `<span class="${diff.cls}">${difficulty}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
     $('metricDiffSub').innerHTML      = `<span class="${diff.cls}">${diff.label}</span>`;
 
