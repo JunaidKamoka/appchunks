@@ -458,7 +458,25 @@ body.sidebar-open .hamburger-icon span:nth-child(3) {
   font-weight: 700;
   letter-spacing: -0.03em;
 }
-.kw-actions { display: flex; gap: 8px; }
+.kw-classification {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kw-classification.text-green  { background: var(--green-light);  border-color: rgba(0,255,128,0.18); color: var(--green); }
+.kw-classification.text-blue   { background: var(--blue-light);   border-color: rgba(64,160,255,0.18); color: var(--blue); }
+.kw-classification.text-yellow { background: var(--yellow-light); border-color: rgba(255,196,64,0.18); color: var(--yellow); }
+.kw-classification.text-red    { background: var(--red-light);    border-color: rgba(255,80,80,0.18); color: var(--red); }
+.kw-classification.text-muted  { background: var(--bg-elevated);  border-color: var(--border); color: var(--text-muted); }
+
+.kw-actions { display: flex; gap: 8px; margin-left: auto; }
 .btn-icon {
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
@@ -780,6 +798,7 @@ body.sidebar-open .hamburger-icon span:nth-child(3) {
 .app-tag.free  { background: var(--green-light); color: var(--green); border-color: transparent; }
 .app-tag.paid  { background: var(--yellow-light); color: var(--yellow); border-color: transparent; }
 .app-tag.iap   { background: var(--blue-light); color: var(--blue); border-color: transparent; }
+.app-tag.match-tag { background: var(--green-light); color: var(--green); border-color: transparent; font-weight: 600; }
 
 .app-stats {
   display: flex;

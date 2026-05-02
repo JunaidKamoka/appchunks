@@ -434,8 +434,25 @@
     $('metricDiffVal').innerHTML      = `<span class="${diff.cls}">${difficulty}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
     $('metricDiffSub').innerHTML      = `<span class="${diff.cls}">${diff.label}</span>`;
 
-    $('metricChanceVal').innerHTML    = `<span class="${chance.cls}">${chanceVal}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
-    $('metricChanceSub').innerHTML    = `<span class="${chance.cls}">${chance.label} chance</span>`;
+    // ── Opportunity (aso-connect: popularity × (100 − difficulty) / 100) ──
+    const opportunityVal = Math.round(Number(m.opportunity != null ? m.opportunity : m.chance) || 0);
+    const oppLabelObj = API.chanceLabel(opportunityVal);
+    $('metricChanceVal').innerHTML    = `<span class="${oppLabelObj.cls}">${opportunityVal}</span><span style="font-size:.7rem;color:var(--text-muted)">/100</span>`;
+    $('metricChanceSub').innerHTML    = `<span class="${oppLabelObj.cls}">${oppLabelObj.label} opportunity</span>`;
+
+    // ── Classification badge next to the keyword title ──
+    const classEl = $('kwClassification');
+    if (classEl) {
+      const label = m.classification || '';
+      const cls   = m.classificationCls || 'text-muted';
+      if (label && popularity > 0) {
+        classEl.innerHTML  = label;
+        classEl.className  = `kw-classification ${cls}`;
+        classEl.style.display = '';
+      } else {
+        classEl.style.display = 'none';
+      }
+    }
 
     $('metricAppsVal').textContent    = API.formatNumber(competing);
     $('metricAppsSub').textContent    = 'competing apps';
@@ -601,6 +618,12 @@
       const iapTag  = app.hasIAP ? '<span class="app-tag iap">In-App Purchases</span>' : '';
       const platformTag = `<span class="app-tag">${platformLabel(app.platform || state.platform)}</span>`;
       const catTag = `<span class="app-tag">${escHtml(app.category || 'App')}</span>`;
+      // aso-connect's titleHasKeyword flag — strong relevance signal for ASO.
+      const kw = (state.keyword || '').toLowerCase().trim();
+      const titleHasKeyword = kw && (app.name || '').toLowerCase().includes(kw);
+      const matchTag = titleHasKeyword
+        ? `<span class="app-tag match-tag" title="App title contains the searched keyword — high direct-relevance signal.">title match</span>`
+        : '';
 
       const revenue = API.estimateAppRevenue(app, app.platform || state.platform, state.country);
 
@@ -632,7 +655,7 @@
           <div class="app-name">${escHtml(app.name)}</div>
           <div class="app-dev">${escHtml(app.developer)}</div>
           <div class="app-tags">
-            ${platformTag}${catTag}${iapTag}
+            ${platformTag}${catTag}${matchTag}${iapTag}
           </div>
         </div>
         <div class="app-revenue">

@@ -19,7 +19,7 @@
   <!-- AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1702155776302125" crossorigin="anonymous"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=20260502d" />
+  <link rel="stylesheet" href="css/style.css?v=20260502e" />
 </head>
 <body>
 
@@ -174,6 +174,7 @@
         <div class="keyword-header-card">
           <div class="kw-title-row">
             <h2 id="resultKeyword"></h2>
+            <span class="kw-classification" id="kwClassification" title="Aso-connect classification based on the popularity + difficulty combo."></span>
             <div class="kw-actions">
               <button class="btn-icon" id="saveKeywordBtn" title="Save keyword"><i data-feather="bookmark"></i></button>
               <button class="btn-icon" id="exportBtn" title="Export CSV"><i data-feather="download"></i></button>
@@ -213,10 +214,10 @@
                 <div class="metric-sub" id="metricDiffSub"></div>
               </div>
             </div>
-            <div class="metric-card">
+            <div class="metric-card" title="Opportunity = popularity × (100 − difficulty) / 100. Aso-connect's formula for how exploitable a keyword is — high demand combined with a beatable competitive field.">
               <div class="metric-icon chance-icon"><i data-feather="trending-up"></i></div>
               <div class="metric-info">
-                <div class="metric-label">Chance Score</div>
+                <div class="metric-label">Opportunity</div>
                 <div class="metric-value" id="metricChanceVal">—</div>
                 <div class="metric-sub" id="metricChanceSub"></div>
               </div>
@@ -458,7 +459,7 @@
   <!-- TOAST -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <script src="js/api.js?v=20260502d"></script>
-  <script src="js/app.js?v=20260502d"></script>
+  <script src="js/api.js?v=20260502e"></script>
+  <script src="js/app.js?v=20260502e"></script>
 </body>
 </html>

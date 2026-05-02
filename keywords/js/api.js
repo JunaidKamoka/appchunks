@@ -405,14 +405,15 @@ const API = (() => {
     // ── DIFFICULTY (aso-connect 7-factor weighted, 1-100) ──
     const difficulty = computeDifficulty(apps, keyword);
 
-    // ── CHANCE SCORE ──
-    // Inverse of difficulty weighted by opportunity signals
-    const lowCompetitionBonus = freeRatio > 0.8 ? 10 : 0;
-    const gapBonus = avgRating < 4.0 ? 15 : avgRating < 4.3 ? 8 : 0;
-    const nichBonus = appCount < 10 ? 15 : appCount < 20 ? 8 : 0;
-    const chance = Math.max(1, Math.min(99, Math.round(
-      (100 - difficulty + lowCompetitionBonus + gapBonus + nichBonus) / 1.2
-    )));
+    // ── OPPORTUNITY (aso-connect exact formula) ──
+    // opportunity = popularity × (100 − difficulty) / 100
+    // High when a keyword has both demand and a beatable competitive field.
+    const opportunity = opportunityScore(popularity, difficulty);
+    // Legacy field kept so older render paths and CSV exports keep working.
+    const chance = opportunity;
+
+    // ── CLASSIFICATION (aso-connect exact label tree) ──
+    const classification = classifyKeyword(popularity, difficulty);
 
     // ── COMPETING APPS ──
     // Real iTunes count is the floor; popularity scales the broader-market estimate.
@@ -451,7 +452,13 @@ const API = (() => {
       popularity,
       // volume kept for backward compat with chart and external consumers
       volume: maxReach,
-      difficulty, chance, competing, cpi, trend, history,
+      difficulty,
+      // chance kept as alias for opportunity for legacy render paths
+      chance,
+      opportunity,
+      classification: classification.label,
+      classificationCls: classification.cls,
+      competing, cpi, trend, history,
       searchResults, searchResultsCapped, maxReach,
     };
   }
@@ -551,7 +558,13 @@ const API = (() => {
         30 + scoreFactor * 35 - (wordCount - 1) * 12
       )));
 
-      const chance = Math.max(5, Math.min(95, Math.round(100 - diff * 0.8)));
+      // Approximate popularity for related keywords from the volume estimate
+      // so we can run aso-connect's exact opportunity formula on them too.
+      const relPopularity = Math.max(1, Math.min(100, Math.round(
+        Math.log10(Math.max(1, vol)) / Math.log10(10_000_000) * 100
+      )));
+      const opportunity = opportunityScore(relPopularity, diff);
+      const chance = opportunity;
       const trendVal = parseFloat(((scoreFactor - 0.3) * 30).toFixed(1));
 
       return {
@@ -559,6 +572,8 @@ const API = (() => {
         volume: vol,
         difficulty: diff,
         chance,
+        opportunity,
+        popularity: relPopularity,
         trend: trendVal,
       };
     }).sort((a, b) => b.volume - a.volume);
@@ -742,7 +757,7 @@ const API = (() => {
       metrics = calculateMetricsFromApps(keyword, platform, country, apps, rawResultCount);
     } catch (e) {
       console.warn('Metrics calculation failed, using zero fallback', e);
-      metrics = { popularity: 0, volume: 0, difficulty: 0, chance: 0, competing: 0, cpi: 0, trend: 0, history: [], searchResults: 0, searchResultsCapped: false, maxReach: 0 };
+      metrics = { popularity: 0, volume: 0, difficulty: 0, chance: 0, opportunity: 0, classification: 'Low Volume', classificationCls: 'text-muted', competing: 0, cpi: 0, trend: 0, history: [], searchResults: 0, searchResultsCapped: false, maxReach: 0 };
     }
 
     // Related keywords — safe fallback to empty list
@@ -1197,17 +1212,38 @@ const API = (() => {
     return String(n);
   }
 
+  // ── aso-connect difficulty tiers (exact match to scoring.js#difficultyLabel)
   function difficultyLabel(d) {
-    if (d >= 80) return { label: 'Very Hard', cls: 'text-red' };
-    if (d >= 60) return { label: 'Hard',      cls: 'text-yellow' };
-    if (d >= 40) return { label: 'Medium',    cls: 'text-blue' };
-    return             { label: 'Easy',       cls: 'text-green' };
+    if (d < 16) return { label: 'Very Easy', cls: 'text-green' };
+    if (d < 36) return { label: 'Easy',      cls: 'text-green' };
+    if (d < 56) return { label: 'Moderate',  cls: 'text-blue' };
+    if (d < 76) return { label: 'Hard',      cls: 'text-yellow' };
+    if (d < 91) return { label: 'Very Hard', cls: 'text-red' };
+    return            { label: 'Extreme',   cls: 'text-red' };
   }
 
+  // ── aso-connect classification (exact match to scoring.js#classify)
+  // Returns the qualitative label that ASO Connect picks for a keyword based
+  // on its popularity + difficulty combination.
+  function classifyKeyword(popularity, difficulty) {
+    if (popularity >= 40 && difficulty <= 35) return { label: 'Sweet Spot',       cls: 'text-green'  };
+    if (popularity >= 25 && difficulty <= 25) return { label: 'Hidden Gem',       cls: 'text-green'  };
+    if (popularity >= 60 && difficulty <= 55) return { label: 'Good Target',      cls: 'text-blue'   };
+    if (difficulty >= 75)                     return { label: 'High Competition', cls: 'text-red'    };
+    if (popularity < 20)                      return { label: 'Low Volume',       cls: 'text-muted'  };
+    return                                           { label: 'Moderate',         cls: 'text-yellow' };
+  }
+
+  // Opportunity score per aso-connect: pop × (100 - diff) / 100
+  function opportunityScore(popularity, difficulty) {
+    return Math.round((popularity * (100 - difficulty)) / 100);
+  }
+
+  // Backward-compat alias for the legacy "chance" label spots in app.js
   function chanceLabel(c) {
-    if (c >= 70) return { label: 'High',   cls: 'text-green' };
-    if (c >= 40) return { label: 'Medium', cls: 'text-yellow' };
-    return             { label: 'Low',     cls: 'text-red' };
+    if (c >= 70) return { label: 'High',     cls: 'text-green'  };
+    if (c >= 40) return { label: 'Moderate', cls: 'text-yellow' };
+    return            { label: 'Low',       cls: 'text-red'    };
   }
 
   function renderStars(rating) {
@@ -1239,6 +1275,8 @@ const API = (() => {
     formatRevenue,
     difficultyLabel,
     chanceLabel,
+    classifyKeyword,
+    opportunityScore,
     renderStars,
     trendArrow,
   };
