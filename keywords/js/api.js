@@ -268,11 +268,29 @@ const API = (() => {
   // project (github.com/szlaskidaniel/aso-connect). All scoring is computed
   // deterministically from real iTunes Search API fields — no random fallbacks.
 
+  // Stop words / non-ASO terms — these are never real keywords on the App
+  // Store but trivially match every app description and would otherwise
+  // produce inflated popularity scores.
+  const ASO_STOP_WORDS = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'is', 'it', 'be', 'i', 'you', 'we', 'my', 'me',
+    'this', 'that', 'app',
+  ]);
+
+  // Normalize a string for matching: lowercase + collapse hyphens/underscores
+  // to spaces. Lets "gluten-free" match a query of "gluten free", which is
+  // how App Store search treats them.
+  function _normMatch(s) {
+    return (s || '').toLowerCase().replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   /**
    * Popularity score (1-100) — how heavily searched a keyword is.
-   * Six real signals combined: result count, top-app rating leaders, title
-   * match density, market depth, single-word penalty, exact-phrase bonus.
-   * Ported from aso-connect (github.com/szlaskidaniel/aso-connect).
+   * Six real signals combined plus a relevance gate and stop-word guard.
+   * Base formula ported from aso-connect (github.com/szlaskidaniel/aso-connect)
+   * with two extensions for accuracy on edge-case keywords:
+   *   • Stop-word / single-letter hard-cap (returns ≤10 for "the", "a", "1")
+   *   • Relevance gate that dampens fuzzy-match noise from iTunes
    *
    * Note: a 7th "Apple hints presence" signal would add precision, but Apple's
    * hints endpoint requires the X-Apple-Store-Front custom header which fails
@@ -281,8 +299,17 @@ const API = (() => {
   function computePopularity(apps, keyword) {
     if (!apps || !apps.length) return 0;
     const appCount = apps.length;
-    const kwLower = (keyword || '').toLowerCase().trim();
-    const wordCount = (keyword || '').trim().split(/\s+/).length;
+    const kwLowerRaw = (keyword || '').toLowerCase().trim();
+    const kwLower = _normMatch(kwLowerRaw);
+    const wordCount = (keyword || '').trim().split(/\s+/).filter(Boolean).length;
+
+    // Hard guard: stop words, single letters, and pure numbers are not real
+    // App Store search keywords — every app description contains them. Apple
+    // strips them from search anyway. Cap at 10/100 (Very Low) regardless of
+    // what the rest of the formula would have produced.
+    if (kwLower.length < 2 || ASO_STOP_WORDS.has(kwLower) || /^\d+$/.test(kwLower)) {
+      return Math.min(10, Math.max(1, Math.round(appCount / 50)));
+    }
 
     // 1. Result count (0-25)
     const resultCountScore = Math.min(25, (appCount / 25) * 25);
@@ -292,8 +319,8 @@ const API = (() => {
     const top5Avg = top5.reduce((s, a) => s + (a.ratingCount || 0), 0) / Math.max(top5.length, 1);
     const leaderScore = Math.min(30, (Math.log10(Math.max(top5Avg, 1)) / Math.log10(1_000_000)) * 30);
 
-    // 3. Title-match density (0-20, ×1.5 weight)
-    const titleMatches = apps.filter(a => (a.name || '').toLowerCase().includes(kwLower)).length;
+    // 3. Title-match density (0-20, ×1.5 weight) — normalize hyphens to spaces
+    const titleMatches = apps.filter(a => _normMatch(a.name).includes(kwLower)).length;
     const titleMatchScore = Math.min(20, (titleMatches / appCount) * 20 * 1.5);
 
     // 4. Market depth — strong apps deeper than rank 10 (0-10)
@@ -304,16 +331,60 @@ const API = (() => {
     // 5. Specificity penalty — generic single words inflate counts
     const specificityPenalty = (wordCount === 1 && appCount >= 20) ? -10 : 0;
 
-    // 6. Exact phrase bonus for multi-word queries (0-15)
+    // 6. Exact phrase bonus for multi-word queries (0-15) — normalized
     const exactMatches = apps.filter(a => {
-      const t = (a.name || '').toLowerCase();
-      const d = (a.description || '').toLowerCase();
+      const t = _normMatch(a.name);
+      const d = _normMatch((a.description || '').slice(0, 400));
       return t.includes(kwLower) || d.includes(kwLower);
     }).length;
     const exactBonus = wordCount > 1 ? Math.min(15, (exactMatches / appCount) * 15) : 0;
 
-    const raw = resultCountScore + leaderScore + titleMatchScore + depthScore +
-                specificityPenalty + exactBonus;
+    // 7. Relevance gate (extension on top of aso-connect baseline).
+    // iTunes Search does fuzzy matching, so even niche queries like
+    // "ferret feeding schedule tracker" come back with 40+ irrelevant apps
+    // — the result count alone would otherwise inflate popularity. We
+    // measure how many returned apps ACTUALLY contain the keyword (full
+    // phrase OR all individual words in title/description) and dampen the
+    // raw score when the genuine relevance ratio is tiny.
+    const allWordsInDoc = (text, words) => {
+      const t = _normMatch(text);
+      return words.every(w => t.includes(w));
+    };
+    const kwWords = kwLower.split(/\s+/).filter(w => w && !ASO_STOP_WORDS.has(w));
+    const relevantCount = apps.filter(a => {
+      const title = a.name || '';
+      const desc = (a.description || '').slice(0, 400);
+      const titleN = _normMatch(title);
+      const descN  = _normMatch(desc);
+      if (titleN.includes(kwLower) || descN.includes(kwLower)) return true;
+      // for multi-word queries, also count "all (non-stop) words present" matches
+      if (wordCount > 1 && kwWords.length > 0 && (allWordsInDoc(title, kwWords) || allWordsInDoc(desc, kwWords))) return true;
+      return false;
+    }).length;
+    const relevanceRatio = relevantCount / appCount;
+    let relevanceGate = 0;
+    if (wordCount >= 2) {
+      // Multi-word queries: zero genuine matches is a clear signal of noise.
+      if (relevantCount === 0)        relevanceGate = -45;
+      else if (relevanceRatio < 0.02) relevanceGate = -40; // 1 of 50+ apps = essentially niche
+      else if (relevanceRatio < 0.05) relevanceGate = -25;
+      else if (relevanceRatio < 0.10) relevanceGate = -12;
+    } else {
+      // Single-word queries: rarely have 100% relevance, so be gentler.
+      if (relevantCount === 0)       relevanceGate = -25;
+      else if (relevanceRatio < 0.05) relevanceGate = -15;
+      else if (relevanceRatio < 0.15) relevanceGate = -8;
+    }
+
+    // When zero apps actually match the keyword, the top-5 leader/depth
+    // signals are just iTunes returning random popular apps — no real signal
+    // about THIS keyword. Strip those signals out so gibberish queries
+    // ("xyzzy", "qwerasdf") don't borrow popularity from unrelated leaders.
+    const effectiveLeader = relevantCount === 0 ? 0 : leaderScore;
+    const effectiveDepth  = relevantCount === 0 ? 0 : depthScore;
+
+    const raw = resultCountScore + effectiveLeader + titleMatchScore + effectiveDepth +
+                specificityPenalty + exactBonus + relevanceGate;
     return Math.max(1, Math.min(100, Math.round(raw)));
   }
 
@@ -1222,15 +1293,18 @@ const API = (() => {
     return            { label: 'Extreme',   cls: 'text-red' };
   }
 
-  // ── aso-connect classification (exact match to scoring.js#classify)
-  // Returns the qualitative label that ASO Connect picks for a keyword based
-  // on its popularity + difficulty combination.
+  // ── aso-connect classification — exact thresholds from scoring.js#classify
+  // with one ordering change: Low Volume is checked first. ASO Connect's
+  // baseline order labels low-popularity keywords as "High Competition" when
+  // their difficulty happens to be high (e.g. stop words like "the" hit by
+  // every app in the App Store). That's misleading — a keyword nobody
+  // searches for cannot be competitive — so we promote the Low Volume rule.
   function classifyKeyword(popularity, difficulty) {
+    if (popularity < 20)                      return { label: 'Low Volume',       cls: 'text-muted'  };
     if (popularity >= 40 && difficulty <= 35) return { label: 'Sweet Spot',       cls: 'text-green'  };
     if (popularity >= 25 && difficulty <= 25) return { label: 'Hidden Gem',       cls: 'text-green'  };
     if (popularity >= 60 && difficulty <= 55) return { label: 'Good Target',      cls: 'text-blue'   };
     if (difficulty >= 75)                     return { label: 'High Competition', cls: 'text-red'    };
-    if (popularity < 20)                      return { label: 'Low Volume',       cls: 'text-muted'  };
     return                                           { label: 'Moderate',         cls: 'text-yellow' };
   }
 
