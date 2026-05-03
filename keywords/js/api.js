@@ -34,6 +34,65 @@ const API = (() => {
     android: 'software', // fallback; Android uses simulated data
   };
 
+  // Map storefront country code → iTunes Search `lang` parameter so
+  // metadata (title, description, screenshots, release notes) comes back
+  // localized for that storefront instead of always English.
+  const COUNTRY_LANG = {
+    us: 'en_us', gb: 'en_gb', au: 'en_au', ca: 'en_ca',
+    de: 'de_de', fr: 'fr_fr', es: 'es_es', it: 'it_it',
+    nl: 'nl_nl', pt: 'pt_pt', se: 'sv_se', dk: 'da_dk',
+    no: 'no_no', fi: 'fi_fi', pl: 'pl_pl', tr: 'tr_tr',
+    ru: 'ru_ru', jp: 'ja_jp', kr: 'ko_kr', cn: 'zh_cn',
+    tw: 'zh_tw', hk: 'zh_hk', th: 'th_th', vn: 'vi_vn',
+    id: 'id_id', my: 'ms_my', ph: 'en_ph', sg: 'en_sg',
+    in: 'en_in', br: 'pt_br', mx: 'es_mx', ar: 'es_ar',
+    cl: 'es_cl', co: 'es_co', sa: 'ar_sa', ae: 'ar_ae',
+    il: 'he_il', gr: 'el_gr', cz: 'cs_cz', hu: 'hu_hu',
+    ro: 'ro_ro', ua: 'uk_ua',
+  };
+
+  function langForCountry(country) {
+    if (!country) return 'en_us';
+    return COUNTRY_LANG[country.toLowerCase()] || `en_${country.toLowerCase()}`;
+  }
+
+  // Country → ISO 4217 currency code for App Store pricing in that storefront.
+  const COUNTRY_CURRENCY = {
+    us: 'USD', ca: 'CAD', mx: 'MXN', br: 'BRL', ar: 'ARS', cl: 'CLP', co: 'COP',
+    gb: 'GBP', de: 'EUR', fr: 'EUR', es: 'EUR', it: 'EUR', nl: 'EUR', pt: 'EUR',
+    ie: 'EUR', be: 'EUR', at: 'EUR', fi: 'EUR', gr: 'EUR',
+    se: 'SEK', dk: 'DKK', no: 'NOK', pl: 'PLN', cz: 'CZK', hu: 'HUF', ro: 'RON',
+    ch: 'CHF', tr: 'TRY', ru: 'RUB', ua: 'UAH', il: 'ILS',
+    jp: 'JPY', kr: 'KRW', cn: 'CNY', tw: 'TWD', hk: 'HKD',
+    in: 'INR', id: 'IDR', my: 'MYR', sg: 'SGD', ph: 'PHP', th: 'THB', vn: 'VND',
+    au: 'AUD', nz: 'NZD',
+    sa: 'SAR', ae: 'AED', za: 'ZAR', eg: 'EGP',
+  };
+
+  // Currency code → display symbol for price/CPI rendering.
+  const CURRENCY_SYMBOL = {
+    USD: '$', CAD: 'C$', AUD: 'A$', NZD: 'NZ$', HKD: 'HK$', SGD: 'S$', MXN: 'Mex$',
+    EUR: '€', GBP: '£', JPY: '¥', CNY: '¥', KRW: '₩', INR: '₹', RUB: '₽',
+    BRL: 'R$', TRY: '₺', CHF: 'CHF', SEK: 'kr', DKK: 'kr', NOK: 'kr',
+    PLN: 'zł', CZK: 'Kč', HUF: 'Ft', RON: 'lei', UAH: '₴', ILS: '₪',
+    TWD: 'NT$', PHP: '₱', THB: '฿', VND: '₫', IDR: 'Rp', MYR: 'RM',
+    SAR: 'SR', AED: 'AED', ZAR: 'R', EGP: 'E£', ARS: '$', CLP: '$', COP: '$',
+  };
+
+  function currencyForCountry(country) {
+    if (!country) return 'USD';
+    return COUNTRY_CURRENCY[country.toLowerCase()] || 'USD';
+  }
+
+  function currencySymbol(currencyCode) {
+    if (!currencyCode) return '$';
+    return CURRENCY_SYMBOL[currencyCode.toUpperCase()] || currencyCode + ' ';
+  }
+
+  function symbolForCountry(country) {
+    return currencySymbol(currencyForCountry(country));
+  }
+
   function supportsWatch(raw) {
     const devs = raw.supportedDevices || [];
     return devs.some(d => typeof d === 'string' && d.startsWith('Watch'));
@@ -46,7 +105,8 @@ const API = (() => {
     const entity = PLATFORM_ENTITY[platform] || 'software';
     // For watchOS we filter the response, so request a wider pool to compensate.
     const fetchLimit = platform === 'watchos' ? Math.min(200, Math.max(limit * 4, 100)) : limit;
-    const url = `${ITUNES_BASE}?term=${encodeURIComponent(keyword)}&entity=${entity}&country=${country}&limit=${fetchLimit}&lang=en_us`;
+    const lang = langForCountry(country);
+    const url = `${ITUNES_BASE}?term=${encodeURIComponent(keyword)}&entity=${entity}&country=${country}&limit=${fetchLimit}&lang=${lang}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error(`iTunes API error: ${res.status}`);
@@ -63,7 +123,7 @@ const API = (() => {
    * Lookup app by iTunes track ID — returns full app details.
    */
   async function lookupById(trackId, country = 'us') {
-    const url = `${ITUNES_LOOKUP}?id=${encodeURIComponent(trackId)}&country=${country}`;
+    const url = `${ITUNES_LOOKUP}?id=${encodeURIComponent(trackId)}&country=${country}&lang=${langForCountry(country)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Lookup API error: ${res.status}`);
     const data = await res.json();
@@ -75,7 +135,7 @@ const API = (() => {
    * Lookup app by bundle ID — returns full app details.
    */
   async function lookupByBundleId(bundleId, country = 'us') {
-    const url = `${ITUNES_LOOKUP}?bundleId=${encodeURIComponent(bundleId)}&country=${country}`;
+    const url = `${ITUNES_LOOKUP}?bundleId=${encodeURIComponent(bundleId)}&country=${country}&lang=${langForCountry(country)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Bundle lookup API error: ${res.status}`);
     const data = await res.json();
@@ -88,7 +148,7 @@ const API = (() => {
    * Returns array of normalized apps.
    */
   async function lookupDeveloper(artistId, country = 'us') {
-    const url = `${ITUNES_LOOKUP}?id=${encodeURIComponent(artistId)}&entity=software&country=${country}&limit=200`;
+    const url = `${ITUNES_LOOKUP}?id=${encodeURIComponent(artistId)}&entity=software&country=${country}&limit=200&lang=${langForCountry(country)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Developer lookup API error: ${res.status}`);
     const data = await res.json();
@@ -139,7 +199,7 @@ const API = (() => {
       for (const term of variations) {
         if (!term || term.length < 2) continue;
         try {
-          const url = `${ITUNES_BASE}?term=${encodeURIComponent(term)}&entity=software&country=${country}&limit=10&lang=en_us`;
+          const url = `${ITUNES_BASE}?term=${encodeURIComponent(term)}&entity=software&country=${country}&limit=10&lang=${langForCountry(country)}`;
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
@@ -243,7 +303,7 @@ const API = (() => {
         ratingCount:  reviews,
         installs,
         price,
-        currency:     'USD',
+        currency:     currencyForCountry(country),
         isFree,
         hasIAP:       r > 0.4,
         version:      `${Math.ceil(r*10)}.${Math.floor(r2*10)}.${Math.floor(r3*5)}`,
@@ -493,6 +553,37 @@ const API = (() => {
   }
 
   /**
+   * Country reach multiplier — scales global keyword metrics (Max Reach,
+   * Competing Apps, CPI) into the selected storefront. Anchored to US=1.0
+   * since popularityToReach() is calibrated against US-style search volumes.
+   * Smaller storefronts have proportionally fewer searches and competing
+   * apps, and lower CPI floors. Unknown country falls back to neutral 1.0.
+   */
+  function countryReachFactor(country) {
+    if (!country) return 1.0;
+    const share = COUNTRY_SHARE[country.toLowerCase()];
+    if (share == null) return 1.0;
+    const usShare = COUNTRY_SHARE.us; // 0.38 baseline
+    return share / usShare;
+  }
+
+  /**
+   * Country CPI multiplier — Apple Search Ads CPI varies by market.
+   * US/UK/AU/CA tier-1 markets are most expensive; emerging markets cheaper.
+   * Calibrated against published Search Ads benchmarks.
+   */
+  function countryCpiFactor(country) {
+    if (!country) return 1.0;
+    const c = country.toLowerCase();
+    const CPI_TIER = {
+      us: 1.00, au: 0.95, ca: 0.92, gb: 0.90,
+      jp: 0.78, kr: 0.72, de: 0.70, fr: 0.68,
+      cn: 0.55, mx: 0.45, ru: 0.40, br: 0.38, in: 0.30,
+    };
+    return CPI_TIER[c] || 0.65;
+  }
+
+  /**
    * Calculate keyword metrics from actual App Store results.
    * Uses real signals: result count, review counts, ratings, free vs paid ratio.
    */
@@ -521,9 +612,19 @@ const API = (() => {
     // ── CLASSIFICATION (aso-connect exact label tree) ──
     const classification = classifyKeyword(popularity, difficulty);
 
+    // ── COUNTRY SCALING ──
+    // popularityToReach() and the broader-market competing estimate are
+    // calibrated against US-style search volumes. Scope them into the
+    // selected storefront so a Germany search shows German numbers, not
+    // global aggregates.
+    const reachFactor = countryReachFactor(country);
+    const cpiFactor   = countryCpiFactor(country);
+
     // ── COMPETING APPS ──
     // Real iTunes count is the floor; popularity scales the broader-market estimate.
-    const competing = Math.max(appCount, Math.round(appCount * (1 + (popularity / 100) * 20)));
+    const competingGlobal = Math.max(appCount, Math.round(appCount * (1 + (popularity / 100) * 20)));
+    // Storefront-scoped: floor stays at appCount (real iTunes count for this country)
+    const competing = Math.max(appCount, Math.round(competingGlobal * reachFactor));
 
     // ── SEARCH RESULTS (100% accurate) ──
     // Literal count returned by Apple's iTunes Search API. iTunes caps at 200
@@ -531,13 +632,13 @@ const API = (() => {
     const searchResults = rawResultCount;
     const searchResultsCapped = rawResultCount >= 200;
 
-    // ── MAX REACH (estimated monthly searches) ──
-    // Maps the popularity score to absolute monthly-searches via the
-    // industry-calibrated curve in popularityToReach().
-    const maxReach = popularityToReach(popularity);
+    // ── MAX REACH (estimated monthly searches in this storefront) ──
+    const maxReachGlobal = popularityToReach(popularity);
+    const maxReach = Math.max(50, Math.round(maxReachGlobal * reachFactor));
 
-    // ── CPI ESTIMATE ──
-    const cpi = parseFloat((0.30 + (difficulty / 100) * 4.5 + (maxReach / 500_000) * 1.5).toFixed(2));
+    // ── CPI ESTIMATE (country-scoped) ──
+    const cpiGlobal = 0.30 + (difficulty / 100) * 4.5 + (maxReachGlobal / 500_000) * 1.5;
+    const cpi = parseFloat((cpiGlobal * cpiFactor).toFixed(2));
 
     // ── TREND ──
     const recentUpdates = apps.filter(a => {
@@ -650,6 +751,7 @@ const API = (() => {
       .slice(0, 18);
 
     // Compute metrics for each related keyword based on its relevance score
+    const relReachFactor = countryReachFactor(country);
     return sorted.map(([relKw, score]) => {
       const wordCount = relKw.trim().split(/\s+/).length;
       // Volume estimate based on the parent keyword + how common this term appeared
@@ -657,7 +759,7 @@ const API = (() => {
       const volumeBase = Math.log10(Math.max(1, parentVolume)) * 8000;
       const scoreFactor = Math.min(1, score / 20);
       const lengthPenalty = wordCount > 2 ? 0.4 : wordCount > 1 ? 0.7 : 1.0;
-      const vol = Math.max(50, Math.round(volumeBase * scoreFactor * lengthPenalty));
+      const vol = Math.max(50, Math.round(volumeBase * scoreFactor * lengthPenalty * relReachFactor));
 
       // Difficulty: longer tail = easier
       const diff = Math.max(5, Math.min(95, Math.round(
@@ -1295,12 +1397,13 @@ const API = (() => {
    * Format revenue as $X, $XK, $XM — returns a dash when we have no estimate
    * rather than inventing a tiny dollar figure.
    */
-  function formatRevenue(n) {
+  function formatRevenue(n, country) {
+    const sym = country ? symbolForCountry(country) : '$';
     if (!n || n < 1) return '—';
-    if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-    if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
-    if (n >= 1)   return `$${Math.round(n)}`;
-    return '<$1';
+    if (n >= 1e6) return `${sym}${(n / 1e6).toFixed(1)}M`;
+    if (n >= 1e3) return `${sym}${(n / 1e3).toFixed(1)}K`;
+    if (n >= 1)   return `${sym}${Math.round(n)}`;
+    return `<${sym}1`;
   }
 
   // ── FORMATTING UTILITIES (exported) ───────────────────────────────
@@ -1388,5 +1491,8 @@ const API = (() => {
     opportunityScore,
     renderStars,
     trendArrow,
+    currencyForCountry,
+    currencySymbol,
+    symbolForCountry,
   };
 })();

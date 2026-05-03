@@ -457,7 +457,8 @@
     $('metricAppsVal').textContent    = API.formatNumber(competing);
     $('metricAppsSub').textContent    = 'competing apps';
 
-    $('metricCpiVal').textContent     = `$${cpiTxt}`;
+    const cpiSym = API.symbolForCountry(state.country);
+    $('metricCpiVal').textContent     = `${cpiSym}${cpiTxt}`;
     $('metricCpiSub').textContent     = 'avg cost per install';
 
     $('metricTrendVal').innerHTML     = `<span class="${trend.cls === 'trend-up' ? 'text-green' : trend.cls === 'trend-down' ? 'text-red' : 'text-muted'}">${trend.text}</span>`;
@@ -613,7 +614,7 @@
       const isTop3  = rank <= 3;
       const rating  = app.rating || 0;
       const reviews = API.formatNumber(app.ratingCount || app.reviews || 0);
-      const price   = app.isFree ? 'Free' : `$${app.price.toFixed(2)}`;
+      const price   = app.isFree ? 'Free' : `${API.currencySymbol(app.currency || API.currencyForCountry(state.country))}${app.price.toFixed(2)}`;
       const priceClass = app.isFree ? 'free-price' : '';
       const iapTag  = app.hasIAP ? '<span class="app-tag iap">In-App Purchases</span>' : '';
       const platformTag = `<span class="app-tag">${platformLabel(app.platform || state.platform)}</span>`;
@@ -639,7 +640,7 @@
       // Revenue block: show "—" for apps without enough rating signal to estimate
       const hasEstimate = revenue.hasEstimate !== false && revenue.monthlyDownloads > 0;
       const revenueBlock = hasEstimate
-        ? `<div class="app-revenue-val">${API.formatRevenue(revenue.monthlyRevenue)}<span class="app-revenue-period">/mo</span></div>
+        ? `<div class="app-revenue-val">${API.formatRevenue(revenue.monthlyRevenue, state.country)}<span class="app-revenue-period">/mo</span></div>
            <div class="app-revenue-downloads">${API.formatNumber(revenue.monthlyDownloads)} downloads/mo</div>
            <div class="app-revenue-model">${revModelIcon} ${revenue.revenueModel}</div>`
         : `<div class="app-revenue-val app-revenue-none">—</div>
@@ -713,7 +714,7 @@
   function renderModalContent(app) {
     const rating   = app.rating || 0;
     const reviews  = API.formatNumber(app.ratingCount || 0);
-    const price    = app.isFree ? 'Free' : `$${app.price?.toFixed(2) || '0.00'}`;
+    const price    = app.isFree ? 'Free' : `${API.currencySymbol(app.currency || API.currencyForCountry(state.country))}${app.price?.toFixed(2) || '0.00'}`;
     const size     = app.size || '—';
     const version  = app.version || '—';
     const minOS    = app.minOS || '—';
@@ -799,11 +800,11 @@
       <div class="modal-revenue-grid">
         <div class="modal-revenue-card">
           <div class="modal-revenue-label">Monthly Revenue</div>
-          <div class="modal-revenue-val text-green">${API.formatRevenue(revenue.monthlyRevenue)}</div>
+          <div class="modal-revenue-val text-green">${API.formatRevenue(revenue.monthlyRevenue, state.country)}</div>
         </div>
         <div class="modal-revenue-card">
           <div class="modal-revenue-label">Annual Revenue</div>
-          <div class="modal-revenue-val text-green">${API.formatRevenue(revenue.annualRevenue)}</div>
+          <div class="modal-revenue-val text-green">${API.formatRevenue(revenue.annualRevenue, state.country)}</div>
         </div>
         <div class="modal-revenue-card">
           <div class="modal-revenue-label">Daily Downloads</div>
@@ -1068,7 +1069,7 @@
   function renderChartRow(app, colTitle) {
     let priceHtml = '';
     if (app.price > 0) {
-      priceHtml = `<span class="tc-price">$${app.price.toFixed(2)}</span>`;
+      priceHtml = `<span class="tc-price">${API.currencySymbol(app.currency || API.currencyForCountry(state.country))}${app.price.toFixed(2)}</span>`;
     } else {
       priceHtml = `<span class="tc-price tc-free">Free</span>`;
     }
@@ -1252,7 +1253,7 @@
       [`Keyword: ${keyword}`, `Platform: ${state.platform}`, `Country: ${state.country}`],
       [],
       ['=== KEYWORD METRICS ==='],
-      ['Volume', 'Difficulty', 'Chance', 'Competing Apps', 'CPI ($)', 'Trend (%)'],
+      ['Volume', 'Difficulty', 'Chance', 'Competing Apps', `CPI (${API.currencyForCountry(state.country)})`, 'Trend (%)'],
       [metrics.volume, metrics.difficulty, metrics.chance, metrics.competing, metrics.cpi, metrics.trend],
       [],
       ['=== RELATED KEYWORDS ==='],
@@ -1260,10 +1261,11 @@
       ...related.map(r => [r.keyword, r.volume, r.difficulty, r.chance, r.trend]),
       [],
       ['=== TOP APPS ==='],
-      ['Rank', 'Name', 'Developer', 'Category', 'Rating', 'Reviews', 'Price', 'Has IAP', 'Version', 'Est. Monthly Revenue', 'Est. Monthly Downloads', 'Revenue Model'],
+      ['Rank', 'Name', 'Developer', 'Category', 'Rating', 'Reviews', `Price (${API.currencyForCountry(state.country)})`, 'Has IAP', 'Version', `Est. Monthly Revenue (${API.currencyForCountry(state.country)})`, 'Est. Monthly Downloads', 'Revenue Model'],
       ...apps.map(a => {
         const rev = API.estimateAppRevenue(a, a.platform || state.platform, state.country);
-        return [a.rank, a.name, a.developer, a.category, a.rating, a.ratingCount, a.isFree ? 'Free' : `$${a.price}`, a.hasIAP ? 'Yes' : 'No', a.version, `$${rev.monthlyRevenue}`, rev.monthlyDownloads, rev.revenueModel];
+        const sym = API.currencySymbol(a.currency || API.currencyForCountry(state.country));
+        return [a.rank, a.name, a.developer, a.category, a.rating, a.ratingCount, a.isFree ? 'Free' : `${sym}${a.price}`, a.hasIAP ? 'Yes' : 'No', a.version, `${sym}${rev.monthlyRevenue}`, rev.monthlyDownloads, rev.revenueModel];
       }),
     ];
 
