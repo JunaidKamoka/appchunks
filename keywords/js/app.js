@@ -730,7 +730,7 @@
       : '';
     const phHtml = `<div class="modal-app-icon-placeholder" ${app.icon ? 'style="display:none"' : ''}>${appEmoji(app.category)}</div>`;
 
-    const relatedKws = generateAppKeywords(app.name, app.category);
+    const relatedKws = API.extractAppKeywords(app, state.country);
 
     const screenshotHtml = (app.screenshots && app.screenshots.length > 0) ? `
       <div class="modal-section-title">Screenshots</div>
@@ -893,7 +893,7 @@
     }
 
     const { keyword, related, apps } = state.results;
-    const aso = API.generateASOMetadata(keyword, related, apps);
+    const aso = API.generateASOMetadata(keyword, related, apps, state.country);
 
     // Render Titles
     els.asoTitles.innerHTML = aso.titles.map(t => `
@@ -934,13 +934,13 @@
       </div>
     `;
 
-    // Render Descriptions
+    // Render Descriptions — real competitor description excerpts, attributed
     els.asoDescriptions.innerHTML = aso.descriptions.map((d, i) => `
       <div class="aso-description-item">
-        <div class="aso-desc-label">Option ${i + 1}</div>
-        <div class="aso-desc-text">${escHtml(d).replace(/\n/g, '<br>')}</div>
+        <div class="aso-desc-label">${escHtml(d.source || `Competitor ${i + 1}`)}</div>
+        <div class="aso-desc-text">${escHtml(d.text).replace(/\n/g, '<br>')}</div>
         <div class="aso-suggestion-meta">
-          <span class="aso-char-count">${d.length} chars</span>
+          <span class="aso-char-count">${d.text.length} chars</span>
           <button class="aso-copy-btn" data-copy-desc="${i}" title="Copy">
             <i data-feather="copy"></i>
           </button>
@@ -949,7 +949,7 @@
     `).join('');
 
     // Store descriptions for copy
-    els.asoDescriptions._descriptions = aso.descriptions;
+    els.asoDescriptions._descriptions = aso.descriptions.map(d => d.text);
 
     // Show the content
     els.asoGeneratorContent.classList.remove('hidden');
@@ -1110,7 +1110,7 @@
         if (res.apps.length === 0) { showToast('No results found', 'error'); return; }
         app = res.apps[0];
       }
-      const kws = generateAppKeywords(app.name, app.category);
+      const kws = API.extractAppKeywords(app, state.country);
 
       els.competitorResults.innerHTML = `
         <div class="section-card" style="max-width:700px">
@@ -1323,24 +1323,6 @@
       'Medical': '🏥', 'Reference': '📖', 'Developer Tools': '🛠️',
     };
     return map[category] || '📱';
-  }
-
-  function generateAppKeywords(name, category) {
-    const nameParts = name.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(w => w.length > 2);
-    const catKws = {
-      'Photo & Video': ['photo editor','video editor','camera filter','selfie app'],
-      'Photography':   ['photo editor','camera app','picture editor','photo filter'],
-      'Entertainment': ['streaming app','video player','movies app','watch online'],
-      'Music':         ['music player','spotify alternative','mp3 player','music app'],
-      'Productivity':  ['todo app','task manager','note taking','productivity tools'],
-      'Utilities':     ['utility app','tools app','file manager','system tools'],
-      'Health & Fitness': ['fitness tracker','workout app','calorie counter','step counter'],
-      'Education':     ['learning app','language learning','study app','flashcards'],
-      'Finance':       ['budget app','expense tracker','money manager','banking app'],
-    };
-    const base = catKws[category] || [`${(name||'').toLowerCase().slice(0,20)} app`];
-    const extra = nameParts.slice(0, 3).map(w => `${w} app`);
-    return [...new Set([...base, ...extra])].slice(0, 10);
   }
 
   function timeAgo(iso) {

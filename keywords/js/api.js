@@ -36,7 +36,10 @@ const API = (() => {
 
   // Map storefront country code → iTunes Search `lang` parameter so
   // metadata (title, description, screenshots, release notes) comes back
-  // localized for that storefront instead of always English.
+  // localized for that storefront instead of always English. Only codes in
+  // VALID_ITUNES_LANGS are accepted by Apple — unsupported codes (en_in,
+  // en_ph, en_sg, es_ar, es_cl, es_co, ar_ae, he_il) return HTTP 400, so
+  // those storefronts map to the closest valid substitute.
   const COUNTRY_LANG = {
     us: 'en_us', gb: 'en_gb', au: 'en_au', ca: 'en_ca',
     de: 'de_de', fr: 'fr_fr', es: 'es_es', it: 'it_it',
@@ -44,16 +47,160 @@ const API = (() => {
     no: 'no_no', fi: 'fi_fi', pl: 'pl_pl', tr: 'tr_tr',
     ru: 'ru_ru', jp: 'ja_jp', kr: 'ko_kr', cn: 'zh_cn',
     tw: 'zh_tw', hk: 'zh_hk', th: 'th_th', vn: 'vi_vn',
-    id: 'id_id', my: 'ms_my', ph: 'en_ph', sg: 'en_sg',
-    in: 'en_in', br: 'pt_br', mx: 'es_mx', ar: 'es_ar',
-    cl: 'es_cl', co: 'es_co', sa: 'ar_sa', ae: 'ar_ae',
-    il: 'he_il', gr: 'el_gr', cz: 'cs_cz', hu: 'hu_hu',
+    id: 'id_id', my: 'ms_my', ph: 'en_us', sg: 'en_us',
+    in: 'en_us', br: 'pt_br', mx: 'es_mx', ar: 'es_mx',
+    cl: 'es_mx', co: 'es_mx', sa: 'ar_sa', ae: 'ar_sa',
+    il: 'en_us', gr: 'el_gr', cz: 'cs_cz', hu: 'hu_hu',
     ro: 'ro_ro', ua: 'uk_ua',
   };
 
+  // Apple's allowlist of supported `lang=` values. Verified empirically;
+  // anything outside this set returns HTTP 400 from the iTunes Search API.
+  const VALID_ITUNES_LANGS = new Set([
+    'en_us','en_gb','en_au','en_ca',
+    'de_de','fr_fr','fr_ca','es_es','es_mx','it_it','nl_nl','pt_pt','pt_br',
+    'sv_se','da_dk','no_no','fi_fi','pl_pl','tr_tr','ru_ru','uk_ua',
+    'cs_cz','hu_hu','ro_ro','el_gr',
+    'ja_jp','ko_kr','zh_cn','zh_tw','zh_hk',
+    'th_th','vi_vn','id_id','ms_my','hi_in','ar_sa',
+  ]);
+
   function langForCountry(country) {
     if (!country) return 'en_us';
-    return COUNTRY_LANG[country.toLowerCase()] || `en_${country.toLowerCase()}`;
+    const mapped = COUNTRY_LANG[country.toLowerCase()];
+    if (mapped && VALID_ITUNES_LANGS.has(mapped)) return mapped;
+    return 'en_us';
+  }
+
+  // Primary language code (e.g. 'de_de' → 'de') for the selected storefront.
+  // Used to drive stop-word filtering and modifier localization when we
+  // extract keywords from localized app metadata.
+  function primaryLangForCountry(country) {
+    return langForCountry(country).split('_')[0];
+  }
+
+  // Per-language stop-word sets. Common articles, prepositions, conjunctions,
+  // pronouns, and ASO filler nouns ("app/apps"). Used for tokenizing localized
+  // app descriptions so we don't surface "der/die/das" or "の/は/が" as keywords.
+  const STOP_WORDS_BY_LANG = {
+    en: ['the','a','an','and','or','for','with','by','to','in','of','on','at','as','is','it','this','that','your','our','you','we','they','i','my','me','from','be','are','was','were','will','can','have','has','had','do','does','did','not','no','if','than','then','so','but','also','app','apps','use','using','more','most','very','any','all','some','one','two','new','get','make','made'],
+    de: ['der','die','das','den','dem','des','und','oder','für','mit','von','zu','zum','zur','in','im','am','an','auf','bei','aus','nach','vor','über','unter','ist','sind','war','waren','wird','werden','wurde','wurden','sein','haben','hat','hatte','kann','kannst','könnt','können','konnte','musst','muss','müssen','willst','will','wollen','soll','sollst','sollen','nicht','kein','keine','keinen','auch','aber','denn','dann','wenn','dass','sich','sie','er','es','ich','du','wir','ihr','mein','meine','meinen','dein','deine','deinen','sein','seine','seinen','unser','unsere','euer','eure','ein','eine','einen','einer','eines','einem','app','apps','sehr','mehr','alle','jede','jeder','innen','beim','vom','schon','so','noch','nur','was','wie','wo','warum','damit'],
+    fr: ['le','la','les','un','une','des','et','ou','pour','avec','sans','de','du','au','aux','en','dans','sur','sous','par','vers','chez','est','sont','était','étaient','sera','seront','être','avoir','a','ont','avait','avaient','ne','pas','plus','très','mais','donc','car','si','que','qui','quoi','dont','où','je','tu','il','elle','nous','vous','ils','elles','mon','ma','mes','ton','ta','tes','son','sa','ses','notre','nos','votre','vos','leur','leurs','ce','cet','cette','ces','app','apps','tous','toutes','aussi','déjà','encore','seulement','même','comment','quand','pourquoi','peut','peux','pouvez','peuvent','pouvons','veut','veux','voulez','doit','dois','devez','fait','faut','très'],
+    es: ['el','la','los','las','un','una','unos','unas','y','o','para','con','sin','de','del','al','en','sobre','bajo','por','hacia','desde','es','son','era','eran','será','serán','ser','haber','ha','han','había','habían','no','sí','muy','más','menos','pero','porque','si','que','quien','cual','donde','cuando','yo','tú','él','ella','nosotros','vosotros','ellos','ellas','mi','tu','su','nuestro','vuestro','este','esta','estos','estas','app','apps','todos','todas'],
+    it: ['il','lo','la','i','gli','le','un','uno','una','e','o','per','con','senza','di','del','al','dal','nel','sul','da','in','su','sotto','è','sono','era','erano','sarà','saranno','essere','avere','ha','hanno','aveva','avevano','non','sì','molto','più','meno','ma','perché','se','che','chi','quale','dove','quando','io','tu','egli','lei','noi','voi','loro','mio','tuo','suo','nostro','vostro','questo','questa','questi','queste','app','apps','tutti','tutte'],
+    pt: ['o','a','os','as','um','uma','uns','umas','e','ou','para','com','sem','de','do','da','dos','das','ao','aos','em','no','na','nos','nas','sobre','sob','por','é','são','era','eram','será','serão','ser','ter','tem','têm','tinha','tinham','não','sim','muito','mais','menos','mas','porque','se','que','quem','qual','onde','quando','eu','tu','ele','ela','nós','vós','eles','elas','meu','teu','seu','nosso','vosso','este','esta','estes','estas','app','apps','todos','todas'],
+    nl: ['de','het','een','en','of','voor','met','zonder','van','naar','in','op','onder','boven','door','om','is','zijn','was','waren','zal','zullen','heeft','hebben','had','hadden','niet','geen','zeer','meer','minder','maar','omdat','als','dat','wat','wie','welke','waar','wanneer','ik','jij','hij','zij','wij','jullie','mijn','jouw','zijn','haar','onze','jullie','hun','app','apps','alle'],
+    sv: ['och','eller','men','för','med','av','i','på','till','från','är','var','varit','har','hade','kan','kunde','inte','ingen','mycket','mer','mindre','om','att','som','vad','vem','vilken','där','när','jag','du','han','hon','vi','ni','de','min','din','sin','vår','er','deras','en','ett','app','appar','alla'],
+    da: ['og','eller','men','for','med','af','i','på','til','fra','er','var','været','har','havde','kan','kunne','ikke','ingen','meget','mere','mindre','om','at','som','hvad','hvem','hvilken','hvor','hvornår','jeg','du','han','hun','vi','I','de','min','din','sin','vores','jeres','deres','en','et','app','apps','alle'],
+    no: ['og','eller','men','for','med','av','i','på','til','fra','er','var','vært','har','hadde','kan','kunne','ikke','ingen','veldig','mer','mindre','om','at','som','hva','hvem','hvilken','hvor','når','jeg','du','han','hun','vi','dere','de','min','din','sin','vår','deres','en','et','app','apper','alle'],
+    fi: ['ja','tai','mutta','varten','kanssa','ilman','sta','sa','lle','on','oli','ovat','olivat','tulee','tulevat','olla','ei','eivät','hyvin','enemmän','vähemmän','jos','että','joka','mikä','kuka','missä','milloin','minä','sinä','hän','me','te','he','minun','sinun','hänen','meidän','teidän','heidän','app','sovellus','kaikki'],
+    pl: ['i','lub','ale','dla','z','bez','do','od','w','na','pod','nad','przez','jest','są','był','była','było','byli','były','będzie','będą','być','mieć','ma','mają','miał','mieli','nie','tak','bardzo','więcej','mniej','jeśli','że','który','co','kto','gdzie','kiedy','ja','ty','on','ona','my','wy','oni','one','mój','twój','swój','nasz','wasz','ich','app','aplikacja','wszystkie'],
+    tr: ['ve','veya','ama','için','ile','olmadan','den','dan','ta','te','da','de','altında','üstünde','tarafından','dir','dır','idi','olacak','olmak','sahip','sahibim','sahip olmak','değil','yok','çok','daha','az','eğer','ki','kim','ne','hangi','nerede','ne zaman','ben','sen','o','biz','siz','onlar','benim','senin','onun','bizim','sizin','onların','app','uygulama','tüm'],
+    ru: ['и','или','но','для','с','без','от','до','в','на','под','над','через','есть','был','была','было','были','будет','будут','быть','иметь','имеет','имел','не','нет','очень','больше','меньше','если','что','который','кто','где','когда','я','ты','он','она','мы','вы','они','мой','твой','свой','наш','ваш','их','эта','этот','эти','app','приложение','все'],
+    uk: ['і','та','або','але','для','з','без','від','до','в','на','під','над','через','є','був','була','було','були','буде','будуть','бути','мати','має','мав','не','ні','дуже','більше','менше','якщо','що','який','хто','де','коли','я','ти','він','вона','ми','ви','вони','мій','твій','свій','наш','ваш','їх','app','застосунок','усі'],
+    cs: ['a','nebo','ale','pro','s','bez','od','do','v','na','pod','nad','přes','je','jsou','byl','byla','bylo','byli','bude','budou','být','mít','má','měl','ne','ano','velmi','více','méně','když','že','který','kdo','kde','kdy','já','ty','on','ona','my','vy','oni','můj','tvůj','svůj','náš','váš','jejich','app','aplikace','všechny'],
+    hu: ['és','vagy','de','-ért','-val','-vel','nélkül','-tól','-től','-ig','-ban','-ben','-on','-en','-ön','alatt','felett','át','van','vannak','volt','voltak','lesz','lesznek','lenni','van','nincs','nagyon','több','kevesebb','ha','hogy','ami','aki','mi','ki','hol','mikor','én','te','ő','mi','ti','ők','enyém','tied','övé','miénk','tiétek','övék','app','alkalmazás','minden'],
+    el: ['και','ή','αλλά','για','με','χωρίς','από','προς','σε','πάνω','κάτω','μέσω','είναι','ήταν','θα','να','έχω','έχει','είχα','είχε','δεν','ναι','πολύ','περισσότερο','λιγότερο','αν','ότι','που','ποιος','ποια','πού','πότε','εγώ','εσύ','αυτός','αυτή','εμείς','εσείς','αυτοί','αυτές','δικός','δική','δικό','app','εφαρμογή','όλα'],
+    ja: ['の','を','に','は','が','と','で','も','や','から','まで','より','へ','です','である','だ','ない','ある','いる','する','れる','られる','せる','たい','ない','たち','こと','もの','ため','よう','そして','しかし','または','app','アプリ'],
+    ko: ['의','을','를','이','가','은','는','와','과','에','에서','으로','로','도','만','부터','까지','보다','입니다','이다','있다','없다','하다','되다','않다','그리고','하지만','또는','app','앱'],
+    zh: ['的','了','和','或','但','为','与','在','于','到','从','给','把','被','是','有','没','不','也','都','就','还','又','才','再','很','更','最','app','应用','应用程序','软件'],
+    th: ['และ','หรือ','แต่','สำหรับ','กับ','ไม่มี','จาก','ถึง','ใน','บน','ใต้','โดย','คือ','เป็น','อยู่','ได้','จะ','ไม่','มี','app','แอป','แอปพลิเคชัน','ทั้งหมด'],
+    vi: ['và','hoặc','nhưng','cho','với','không','từ','đến','trong','trên','dưới','qua','là','được','có','sẽ','đã','không phải','rất','hơn','ít hơn','nếu','rằng','mà','ai','ở đâu','khi nào','tôi','bạn','anh','chị','chúng tôi','các bạn','họ','app','ứng dụng','tất cả'],
+    id: ['dan','atau','tetapi','untuk','dengan','tanpa','dari','ke','di','pada','adalah','adalah','tidak','ada','akan','telah','sudah','sangat','lebih','kurang','jika','bahwa','yang','siapa','di mana','kapan','saya','kamu','dia','kami','kalian','mereka','app','aplikasi','semua'],
+    ms: ['dan','atau','tetapi','untuk','dengan','tanpa','dari','ke','di','pada','ialah','adalah','tidak','ada','akan','telah','sangat','lebih','kurang','jika','bahawa','yang','siapa','di mana','bila','saya','awak','dia','kami','kalian','mereka','app','aplikasi','semua'],
+    he: ['ו','או','אבל','עבור','עם','בלי','מ','אל','ב','על','תחת','דרך','הוא','היא','הם','הן','זה','זאת','אלה','אלו','לא','כן','מאוד','יותר','פחות','אם','ש','אשר','מי','איפה','מתי','אני','אתה','את','אנחנו','אתם','הם','app','אפליקציה','כל'],
+    ar: ['و','أو','لكن','من','إلى','في','على','عن','مع','بدون','هو','هي','هم','هن','هذا','هذه','ذلك','تلك','لا','نعم','جدا','أكثر','أقل','إذا','أن','الذي','التي','من','أين','متى','أنا','أنت','هو','هي','نحن','أنتم','هم','app','تطبيق','كل'],
+    ro: ['și','sau','dar','pentru','cu','fără','de','la','în','pe','sub','prin','este','sunt','era','erau','va','vor','fi','avea','are','au','nu','da','foarte','mai mult','mai puțin','dacă','că','care','cine','unde','când','eu','tu','el','ea','noi','voi','ei','ele','meu','tău','său','nostru','vostru','lor','app','aplicație','toate'],
+  };
+  const STOP_FALLBACK = new Set(STOP_WORDS_BY_LANG.en);
+
+  function stopWordsForCountry(country) {
+    const lang = primaryLangForCountry(country);
+    const list = STOP_WORDS_BY_LANG[lang];
+    if (!list) return STOP_FALLBACK;
+    // Combine with English: many localized App Store descriptions still embed
+    // English ASO filler ("free","pro","app") which we should strip regardless.
+    return new Set([...list, ...STOP_WORDS_BY_LANG.en]);
+  }
+
+  // Unicode-aware tokenizer: splits on anything that isn't a letter or number
+  // in any script. Critical for German umlauts, French accents, Cyrillic,
+  // Greek, CJK, Thai, Arabic, Hebrew — the previous `[^a-z0-9\s]` regex
+  // stripped all of these to empty strings. Soft hyphens (U+00AD) used by
+  // iTunes for line-break hints in localized labels are stripped first.
+  const TOKEN_RE = /[\p{L}\p{N}][\p{L}\p{N}'-]*/gu;
+  const SOFT_HYPHEN_RE = /­/g;
+  function tokenizeText(text) {
+    if (!text) return [];
+    const matches = String(text).toLowerCase().replace(SOFT_HYPHEN_RE, '').match(TOKEN_RE);
+    return matches || [];
+  }
+
+  // Extract the most representative keyword chips from a single app's
+  // localized metadata. Priority order: genres (localized labels) → tokens
+  // from app name → highest-frequency content tokens & bigrams from the
+  // app's description. Falls back gracefully when description is empty.
+  function extractAppKeywords(app, country, limit = 10) {
+    if (!app) return [];
+    const stops = stopWordsForCountry(country);
+    const out = [];
+    const seen = new Set();
+    const add = (raw) => {
+      if (out.length >= limit) return;
+      const k = String(raw || '').replace(SOFT_HYPHEN_RE, '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!k || k.length < 2 || k.length > 40) return;
+      if (seen.has(k)) return;
+      // Reject pure-number tokens and standalone stop words
+      if (/^\d+$/.test(k)) return;
+      if (stops.has(k)) return;
+      seen.add(k);
+      out.push(k);
+    };
+
+    // 1) Localized genres (iTunes returns these in storefront language)
+    (app.genres || []).slice(0, 3).forEach(g => add(g));
+    if (app.category) add(app.category);
+
+    // 2) App name tokens (high-signal, in storefront language)
+    const nameToks = tokenizeText(app.name).filter(t => t.length > 1 && !stops.has(t));
+    nameToks.forEach(t => add(t));
+
+    // 3) High-frequency tokens & bigrams from the localized description.
+    // Strip URLs first so the tokenizer doesn't surface "https www" /
+    // "whatsapp com" / "picsart com" fragments as keyword chips.
+    let desc = app.fullDescription || app.description || app.summary || '';
+    if (desc) {
+      desc = desc
+        .replace(/https?:\/\/\S+/gi, ' ')
+        .replace(/www\.\S+/gi, ' ')
+        .replace(/\b[\w-]+\.(com|net|org|io|co|app|de|fr|jp|cn|kr|ru|gov|edu|info|biz|me|tv)\b/gi, ' ')
+        .replace(/\S+@\S+/g, ' ');
+      const urlNoise = new Set(['http','https','www','com','net','org','io','co','html','htm']);
+      const tokens = tokenizeText(desc).filter(t =>
+        t.length > 2 && !stops.has(t) && !urlNoise.has(t) && !/^\d+$/.test(t)
+      );
+      const freq = new Map();
+      tokens.forEach(t => freq.set(t, (freq.get(t) || 0) + 1));
+      // Bigrams capture "photo editor", "Foto Editor" style phrases. Skip for
+      // CJK content (Han/Kana/Hangul), where a single "token" is already a
+      // multi-character phrase — gluing two phrases makes an unwieldy chip.
+      const CJK_RE = /[぀-ヿ一-鿿가-힯]/;
+      for (let i = 0; i < tokens.length - 1; i++) {
+        const a = tokens[i], b = tokens[i + 1];
+        if (a === b) continue;
+        if (CJK_RE.test(a) || CJK_RE.test(b)) continue;
+        if (a.length > 14 || b.length > 14) continue;
+        const bg = `${a} ${b}`;
+        freq.set(bg, (freq.get(bg) || 0) + 2);
+      }
+      const sorted = [...freq.entries()]
+        .filter(([t, c]) => c >= 2 && t.length >= 3)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20);
+      sorted.forEach(([t]) => add(t));
+    }
+
+    return out.slice(0, limit);
   }
 
   // Country → ISO 4217 currency code for App Store pricing in that storefront.
@@ -696,15 +843,17 @@ const API = (() => {
     const kw = keyword.toLowerCase().trim();
     const related = new Map(); // keyword -> frequency/importance score
 
-    // Extract keywords from app names
-    const stopWords = new Set(['the','a','an','and','or','for','with','by','to','in','of','on',
-                                'app','apps','my','your','its','is','it','&','-','–','—','+']);
+    // Stop words for the selected storefront's language — keeps "der/die/das",
+    // "の/は/が", etc. from leaking through as related keywords on non-US
+    // storefronts. English stops are always included as a baseline.
+    const stopWords = stopWordsForCountry(country);
 
     apps.forEach((app, rank) => {
       const weight = Math.max(1, 10 - rank); // top-ranked apps contribute more
 
-      // From app name
-      const nameWords = (app.name || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+      // From app name — Unicode-aware tokenizer keeps non-ASCII letters
+      // (umlauts, accents, Cyrillic, CJK) instead of stripping them out.
+      const nameWords = tokenizeText(app.name).filter(w => w.length > 2 && !stopWords.has(w));
       // Generate 2-word and 3-word combinations from app names
       for (let i = 0; i < nameWords.length; i++) {
         const w = nameWords[i];
@@ -735,13 +884,6 @@ const API = (() => {
           related.set(g, (related.get(g) || 0) + weight * 0.3);
         }
       });
-    });
-
-    // Add common ASO modifier combinations
-    const asoModifiers = ['free', 'best', 'pro', 'top', 'lite', 'no ads', 'offline', '2025'];
-    asoModifiers.forEach(mod => {
-      related.set(`${kw} ${mod}`, (related.get(`${kw} ${mod}`) || 0) + 2);
-      related.set(`${mod} ${kw}`, (related.get(`${mod} ${kw}`) || 0) + 1);
     });
 
     // Sort by relevance score, take top 18
@@ -988,85 +1130,74 @@ const API = (() => {
    * Generate ASO metadata (title, subtitle, description) based on keyword analysis results.
    * Uses the searched keyword, related keywords, and top app data to craft suggestions.
    */
-  function generateASOMetadata(keyword, related, apps) {
-    const kw = keyword.trim();
-    const kwCapitalized = kw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  // Build an ASO research panel sourced entirely from real competitor app
+  // metadata for the selected storefront — no fabricated copy. The panel
+  // surfaces, verbatim:
+  //   • Titles: top competitor app names (as they appear on the store)
+  //   • Subtitles: the text after a ":" / "—" / "-" separator in those names
+  //     (the common App Store pattern where developers expose subtitles)
+  //   • Keyword field: the storefront's real related keywords from search
+  //   • Descriptions: first paragraphs from real competitor descriptions
+  function generateASOMetadata(keyword, related, apps, country) {
+    const kw = (keyword || '').trim();
+    const tops = (apps || []).slice(0, 10);
+    const topCategories = [...new Set(tops.map(a => a.category).filter(Boolean))].slice(0, 3);
 
-    // Gather top related keywords for inclusion
-    const topRelated = (related || []).slice(0, 8).map(r => r.keyword);
-    const topCategories = [...new Set(apps.map(a => a.category).filter(Boolean))].slice(0, 3);
+    // ── TITLES — verbatim top competitor names ──
+    const titles = [...new Set(tops.map(a => (a.name || '').trim()).filter(Boolean))].slice(0, 5);
 
-    // Extract unique meaningful words from top related keywords
-    const stopWords = new Set(['the','a','an','and','or','for','with','by','to','in','of','on','app','free','best','top','no','ads']);
-    const relatedWords = new Set();
-    topRelated.forEach(rk => {
-      rk.split(/\s+/).forEach(w => {
-        const wl = w.toLowerCase();
-        if (wl.length > 2 && !stopWords.has(wl) && !kw.toLowerCase().includes(wl)) {
-          relatedWords.add(w.charAt(0).toUpperCase() + w.slice(1));
-        }
-      });
-    });
-    const extraWords = [...relatedWords].slice(0, 6);
-
-    // Analyze top competitors for patterns
-    const topAppNames = apps.slice(0, 5).map(a => a.name);
-
-    // ── TITLE SUGGESTIONS (max 30 chars for App Store) ──
-    const titles = [];
-    titles.push(`${kwCapitalized} Pro`);
-    titles.push(`${kwCapitalized} - ${extraWords[0] || topCategories[0] || 'Smart'} App`);
-    titles.push(`${extraWords[0] || 'Smart'} ${kwCapitalized}`);
-    // Filter to ≤30 chars
-    const validTitles = titles
-      .map(t => t.length > 30 ? t.slice(0, 27) + '...' : t)
-      .filter((t, i, arr) => arr.indexOf(t) === i);
-
-    // ── SUBTITLE SUGGESTIONS (max 30 chars for App Store) ──
+    // ── SUBTITLES — text after a ":" / "—" / "–" / " - " separator in
+    // competitor names, where developers commonly place their App Store
+    // subtitle (e.g. "Spotify: Music and Podcasts" → "Music and Podcasts").
+    const subtitleSeen = new Set();
     const subtitles = [];
-    const featureWords = extraWords.length > 1 ? extraWords.slice(0, 2).join(' & ') : (topCategories[0] || 'Tools');
-    subtitles.push(`${featureWords} Made Easy`);
-    subtitles.push(`Best ${kwCapitalized} Tool`);
-    subtitles.push(`${topCategories[0] || 'Powerful'} ${kwCapitalized} App`);
-    const validSubtitles = subtitles
-      .map(s => s.length > 30 ? s.slice(0, 27) + '...' : s)
-      .filter((s, i, arr) => arr.indexOf(s) === i);
+    tops.forEach(a => {
+      const name = (a.name || '').trim();
+      const m = name.match(/[:—–]\s*(.+)$/) || name.match(/\s-\s+(.+)$/);
+      if (m && m[1]) {
+        const sub = m[1].trim();
+        const key = sub.toLowerCase();
+        if (sub.length >= 3 && !subtitleSeen.has(key)) {
+          subtitleSeen.add(key);
+          subtitles.push(sub);
+        }
+      }
+    });
 
-    // ── DESCRIPTION SUGGESTIONS ──
-    // Build a keyword-rich description using top keywords naturally
-    const allKeywords = [kw, ...topRelated.slice(0, 5)];
-    const uniqueKeywords = [...new Set(allKeywords)];
+    // ── KEYWORD FIELD — pack the storefront's real related keywords until
+    // we hit Apple's 100-character limit. No keyword is invented here.
+    const seedList = [kw, ...(related || []).map(r => r.keyword)].filter(Boolean);
+    const seen = new Set();
+    let keywordList = '';
+    for (const k of seedList) {
+      const norm = k.trim().toLowerCase();
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      const next = keywordList ? `${keywordList},${k.trim()}` : k.trim();
+      if (next.length > 100) break;
+      keywordList = next;
+    }
 
+    // ── DESCRIPTIONS — first paragraph from real top competitor descriptions.
+    // Trimmed but never reworded; this is research material, not generated copy.
+    const descSeen = new Set();
     const descriptions = [];
-
-    // Description 1: Feature-focused
-    descriptions.push(
-      `Looking for the best ${kw} app? Our app delivers a powerful ${kw} experience with features like ${uniqueKeywords.slice(1, 4).join(', ')}. ` +
-      `Whether you need ${uniqueKeywords[1] || kw} on the go or advanced ${uniqueKeywords[2] || kw} tools, we've got you covered.\n\n` +
-      `Key Features:\n` +
-      uniqueKeywords.slice(0, 5).map(k => `- ${k.charAt(0).toUpperCase() + k.slice(1)}`).join('\n') + '\n\n' +
-      `Download now and discover why users love our ${kw} app!`
-    );
-
-    // Description 2: Problem-solution focused
-    descriptions.push(
-      `Tired of complicated ${kw} apps? We built a simple, powerful solution for ${uniqueKeywords.slice(0, 3).join(', ')}.\n\n` +
-      `Our ${kw} app is designed for everyone — from beginners to professionals. ` +
-      `With intuitive controls and smart features for ${uniqueKeywords.slice(1, 4).join(', ')}, you'll get results fast.\n\n` +
-      `Why choose us:\n` +
-      `- Easy to use ${kw} tools\n` +
-      `- ${extraWords[0] || 'Advanced'} features built-in\n` +
-      `- Regular updates with new ${kw} capabilities\n` +
-      `- No ads, no hassle\n\n` +
-      `Join thousands of happy users. Try it today!`
-    );
-
-    // ── KEYWORD LIST for ASO ──
-    const keywordList = uniqueKeywords.slice(0, 10).join(', ');
+    tops.forEach(a => {
+      const full = (a.fullDescription || a.description || '').trim();
+      if (!full || full.length < 80) return;
+      // Take everything up to the first blank line, then trim to 380 chars.
+      let para = full.split(/\n\s*\n/)[0].trim();
+      if (para.length > 380) para = para.slice(0, 380).replace(/\s+\S*$/, '') + '…';
+      const key = para.slice(0, 80).toLowerCase();
+      if (descSeen.has(key)) return;
+      descSeen.add(key);
+      descriptions.push({ text: para, source: a.name || '' });
+      if (descriptions.length >= 3) return;
+    });
 
     return {
-      titles: validTitles,
-      subtitles: validSubtitles,
+      titles,
+      subtitles,
       descriptions,
       keywordList,
       topCategories,
@@ -1494,5 +1625,6 @@ const API = (() => {
     currencyForCountry,
     currencySymbol,
     symbolForCountry,
+    extractAppKeywords,
   };
 })();
