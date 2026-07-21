@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>Page Not Found — AppChunks</title>
+  <meta name="description" content="The page you requested could not be found."/>
+  <link rel="icon" type="image/x-icon" href="https://appchunks.com/images/favicon.ico"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #000;
+      --surface: #0b0b0c;
+      --border: rgba(255, 255, 255, .11);
+      --text: #f7f7f7;
+      --muted: #8a8a8f;
+      --green: #35d477;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { min-width: 320px; background: var(--background); }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(53, 212, 119, .09), transparent 30rem),
+        linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px),
+        var(--background);
+      background-size: auto, 64px 64px, 64px 64px, auto;
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .nav {
+      width: min(1180px, calc(100% - 40px));
+      height: 76px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, .07);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+
+    .brand img { width: 30px; height: 30px; border-radius: 9px; }
+
+    .nav-link {
+      color: var(--muted);
+      font-size: 13px;
+      transition: color .2s ease;
+    }
+
+    .nav-link:hover { color: var(--text); }
+
+    main {
+      width: min(720px, calc(100% - 40px));
+      margin: auto;
+      padding: 72px 0;
+      text-align: center;
+    }
+
+    .code {
+      display: block;
+      font-size: clamp(108px, 25vw, 230px);
+      font-weight: 800;
+      line-height: .82;
+      letter-spacing: -.1em;
+      padding-right: .1em;
+      color: transparent;
+      background: linear-gradient(180deg, #fff 10%, #777 92%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      user-select: none;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 42px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .035);
+      color: #c7c7ca;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(53, 212, 119, .8);
+      content: "";
+    }
+
+    h1 {
+      margin-top: 22px;
+      font-size: clamp(32px, 6vw, 52px);
+      line-height: 1.04;
+      letter-spacing: -.055em;
+    }
+
+    .message {
+      max-width: 520px;
+      margin: 18px auto 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .actions {
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 22px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+
+    .button:hover { transform: translateY(-2px); }
+    .button-primary { background: #fff; border-color: #fff; color: #050505; }
+    .button-secondary { background: rgba(255, 255, 255, .035); }
+    .button-secondary:hover { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .22); }
+    .arrow { font-size: 18px; line-height: 1; }
+
+    footer {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 24px 0 30px;
+      color: #56565b;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 520px) {
+      .nav { height: 68px; }
+      main { padding: 54px 0 64px; }
+      .status { margin-top: 34px; }
+      .actions { align-items: stretch; flex-direction: column; }
+      .button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .button, .nav-link { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="nav">
+      <a class="brand" href="/" aria-label="AppChunks home">
+        <img src="https://appchunks.com/images/logo.png" alt=""/>
+        <span>AppChunks</span>
+      </a>
+      <a class="nav-link" href="https://appchunks.com/contact.html">Contact</a>
+    </header>
+
+    <main>
+      <span class="code" aria-hidden="true">404</span>
+      <div class="status">AppChunks is online</div>
+      <h1>This page is off the map.</h1>
+      <p class="message">The address may be incorrect, or the page may have moved. Your safest route is back to the AppChunks home page.</p>
+      <div class="actions">
+        <a class="button button-primary" href="/">Return home <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="button button-secondary" href="https://appchunks.com/contact.html">Contact us</a>
+      </div>
+    </main>
+
+    <footer>© 2026 AppChunks. Building digital experiences that matter.</footer>
+  </div>
+</body>
+</html>
